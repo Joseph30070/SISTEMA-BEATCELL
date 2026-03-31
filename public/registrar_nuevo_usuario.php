@@ -11,7 +11,7 @@
 
   <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
 
-    <form action="#" method="POST" class="space-y-6">
+    <form id="formRegistrarPracticante" method="POST" class="space-y-6">
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
@@ -53,7 +53,10 @@
               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
               <option value="">-- Seleccione --</option>
               <option value="1">Desarrollo de Software</option>
-              <option value="2">Electrónica</option>
+              <option value="2">Diseño Gráfico</option>
+              <option value="3">Electrónica</option>
+              <option value="5">Mecatrónica</option>
+              <option value="4">Redes y Comunicaciones</option>
             </select>
 
             <!-- BOTON AGREGAR -->
@@ -82,6 +85,14 @@
 
       </div>
 
+      <!-- OBSERVACION (full width) -->
+      <div>
+        <label class="block text-gray-700 font-semibold mb-1">Observación</label>
+        <textarea name="observacion" rows="3"
+          placeholder="Ej: Es algo impuntual, trabaja muy bien, es nuevo bajo observación..."
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+      </div>
+
       <!-- BOTON -->
       <div class="pt-2">
         <button type="submit"
@@ -90,8 +101,62 @@
         </button>
       </div>
 
+      <!-- Campo oculto para la acción -->
+      <input type="hidden" name="action" value="registrar">
+
     </form>
+
+    <!-- Mensaje de resultado -->
+    <div id="mensajeResultado" class="mt-4"></div>
 
   </div>
 
 </div>
+
+<script>
+document.getElementById('formRegistrarPracticante').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const formData = new FormData(this);
+  const mensajeDiv = document.getElementById('mensajeResultado');
+
+  try {
+    const response = await fetch('../process/process_practicantes.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      mensajeDiv.innerHTML = `
+        <div class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200">
+          ✅ ${data.message}
+        </div>
+      `;
+      this.reset();
+      document.querySelector('input[name="fecha_registro"]').value = new Date().toISOString().split('T')[0];
+      
+      // Recargar la tabla de gestionar practicantes después de 1.5 segundos
+      setTimeout(() => {
+        document.querySelector('[data-tab="gestionar"]').click();
+        location.reload();
+      }, 1500);
+
+    } else {
+      mensajeDiv.innerHTML = `
+        <div class="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200">
+          ❌ ${data.message}
+        </div>
+      `;
+    }
+
+  } catch (error) {
+    mensajeDiv.innerHTML = `
+      <div class="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200">
+        ❌ Error: ${error.message}
+      </div>
+    `;
+  }
+});
+</script>
