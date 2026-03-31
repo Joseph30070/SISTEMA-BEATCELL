@@ -25,10 +25,28 @@ try {
             a.telefonopadres,
             a.telefonoapoderado,
             a.contacto_pago,
-            m.id_matricula
+            m.id_matricula,
+
+            asl.hora_entrada,
+            asl.hora_salida,
+
+            CASE 
+                WHEN asl.hora_entrada IS NOT NULL AND asl.hora_salida IS NOT NULL THEN 'completo'
+                WHEN asl.hora_entrada IS NOT NULL THEN 'entrada'
+                ELSE 'sin'
+            END AS estado_asistencia
+
         FROM alumnos a
+
         INNER JOIN matriculas m ON m.id_alumno = a.id_alumno
-        WHERE m.id_grupo = ? AND a.fecha_baja IS NULL
+
+        LEFT JOIN asistencias asl 
+            ON asl.id_alumno = a.id_alumno 
+            AND asl.fecha = CURDATE()
+
+        WHERE m.id_grupo = ? 
+        AND a.fecha_baja IS NULL
+
         ORDER BY a.nombre ASC
     ");
 

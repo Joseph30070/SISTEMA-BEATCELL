@@ -145,7 +145,7 @@ if (isset($ROLE_MAP[$ROLE])) {
         
         <!-- Editar registros: solo ADMINISTRADOR -->
         <?php if ($ROLE === 'ADMINISTRADOR'): ?>
-          <a href="<?= $base ?>/editar_registros.php"
+          <a href="<?= $base ?>/control_asistencias.php"
             class="flex items-center gap-3 px-3 py-2 rounded <?= $active==='editar_registros'?'bg-gray-200 text-gray-900':'text-gray-600 hover:bg-gray-100' ?>">
             <i class="fas fa-pen-to-square"></i> <span>Asistencia</span>
           </a>

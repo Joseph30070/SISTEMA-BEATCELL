@@ -32,81 +32,88 @@ ob_start();
 ?>
 
 <style>
-.card{
-  background:white;
-  border-radius:12px;
-  padding:25px;
-  margin-bottom:25px;
-  box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
+  .card{
+    background:white;
+    border-radius:12px;
+    padding:25px;
+    margin-bottom:25px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.08);
+  }
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:20px;
-}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+  }
 
-.stat{
-  text-align:center;
-}
+  .stat{
+    text-align:center;
+  }
 
-.stat div{
-  font-size:26px;
-  font-weight:bold;
-  color:#0f766e;
-}
+  .stat div{
+    font-size:26px;
+    font-weight:bold;
+    color:#0f766e;
+  }
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:15px;
-  border-radius:10px;
-  overflow:hidden;
-}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+    border-radius:10px;
+    overflow:hidden;
+  }
 
-thead{
-  background:#0f766e;
-  color:white;
-}
+  thead{
+    background:#0f766e;
+    color:white;
+  }
 
-th{
-  padding:12px;
-  text-align:left;
-  font-weight:600;
-  font-size:14px;
-}
+  th{
+    padding:12px;
+    text-align:left;
+    font-weight:600;
+    font-size:14px;
+  }
 
-td{
-  padding:12px;
-  border-bottom:1px solid #e5e7eb;
-  font-size:14px;
-}
+  td{
+    padding:12px;
+    border-bottom:1px solid #e5e7eb;
+    font-size:14px;
+  }
 
-tbody tr:hover{
-  background:#f9fafb;
-  transition:0.2s;
-}
+  tbody tr:hover{
+    background:#f9fafb;
+    transition:0.2s;
+  }
 
-.center{
-  text-align:center;
-}
+  .center{
+    text-align:center;
+  }
 
-.badge{
-  background:#2563eb;
-  color:white;
-  padding:4px 10px;
-  border-radius:12px;
-  font-size:12px;
-}
+  .badge{
+    background:#2563eb;
+    color:white;
+    padding:4px 10px;
+    border-radius:12px;
+    font-size:12px;
+  }
 
-.text-gray-600{ color:#666; }
-.text-sm{ font-size:0.85rem; }
+  .text-gray-600{ color:#666; }
+  .text-sm{ font-size:0.85rem; }
 
-.hidden{display:none;}
+  .hidden{display:none;}
 </style>
 
 <h2 class="text-3xl font-bold mb-2">Control de Asistencia</h2>
 <p class="text-gray-600 mb-6">Vista basada en cursos → grupos → alumnos</p>
+
+<div class="card">
+  <h3 class="font-semibold mb-3">📅 Horarios de Hoy</h3>
+  <div id="horariosHoy" class="text-sm text-gray-600">
+    Cargando horarios...
+  </div>
+</div>
 
 <!-- TABS -->
 <div class="flex border-b mb-6">
@@ -186,8 +193,8 @@ tbody tr:hover{
         <th>Alumno</th>
         <th>DNI</th>
         <th>Teléfono</th>
-        <th class="center">✔</th>
-        <th class="center">✖</th>
+        <th class="center">Presente</th>
+        <th class="center">Salida</th>
       </tr>
     </thead>
 
@@ -386,6 +393,26 @@ function renderTabla() {
             style="accent-color:#dc2626; transform:scale(1.2);"
             onchange="toggle(${a.id_alumno}); actualizarStats()">
         </td>
+
+        <!-- ✅ ESTADO (YA TENÍAS) -->
+        <td>
+          ${a.estado_asistencia === 'completo'
+            ? '<span style="color:green;font-weight:bold;">✔ Completo</span>'
+            : a.estado_asistencia === 'entrada'
+            ? '<span style="color:orange;">⏳ En clase</span>'
+            : '<span style="color:red;">✖ Sin marcar</span>'
+          }
+        </td>
+
+        <!-- 🔥 NUEVO: BOTÓN SALIDA -->
+        <td class="center">
+          <button 
+            onclick="registrarSalidaAlumno(${a.id_alumno})"
+            style="background:#2563eb;color:white;padding:5px 10px;border-radius:6px;font-size:12px;">
+            Salida
+          </button>
+        </td>
+
       </tr>`;
     });
 
@@ -432,35 +459,232 @@ function marcarTodos() {
 // =========================
 // GUARDAR
 // =========================
+
 function guardarAsistencia() {
+
+  if(!validarHorarioSeleccionado()) return;
+
   let fecha = document.getElementById('fecha').value;
   let grupo = document.getElementById('grupo').value;
 
-  if (!fecha || !grupo) return alert('Seleccione fecha y grupo');
+  if (!fecha || !grupo) {
+    alert('Seleccione fecha y grupo');
+    return;
+  }
 
-  let lista = [];
+  let asistencias = [];
 
   alumnosData.forEach(a => {
-    let p = document.querySelector(`.presente[data-id="${a.id_alumno}"]`).checked;
-    if (p) {
-      lista.push({id:a.id_alumno, fecha});
+
+    let presente = document.querySelector(`.presente[data-id="${a.id_alumno}"]`).checked;
+
+    if (presente) {
+
+      let horaActual = new Date().toTimeString().slice(0,5);
+
+      asistencias.push({
+        id_alumno: a.id_alumno,
+        fecha: fecha,
+        hora_entrada: horaActual
+      });
+
     }
+
   });
 
-  lista.forEach(l => {
-    fetch('../process/process_asistencia.php',{
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:new URLSearchParams({
-        id_alumno:l.id,
-        fecha:l.fecha,
-        hora_entrada:'09:00'
-      })
-    });
+  if (asistencias.length === 0) {
+    alert('Marque al menos un alumno como presente');
+    return;
+  }
+
+  fetch('../process/process_asistencia.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ asistencias })
+  })
+  .then(res => res.json())
+  .then(data => {
+
+    if (data.success) {
+      alert('✓ Asistencia guardada correctamente');
+
+      // ✅ AQUÍ va la limpieza
+      document.getElementById('marcarTodos').checked = false;
+      cargarAlumnos();
+
+    } else {
+      alert('Error: ' + data.error);
+    }
+
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Error al guardar asistencia');
   });
 
-  alert('Asistencia guardada');
 }
+
+// =========================
+// REGISTRAR SALIDA
+// =========================
+
+
+function registrarSalida() {
+
+  if(!validarHorarioSeleccionado()) return;
+
+  let fecha = document.getElementById('fecha').value;
+  let grupo = document.getElementById('grupo').value;
+
+  if (!fecha || !grupo) {
+    alert('Seleccione fecha y grupo');
+    return;
+  }
+
+  let asistencias = [];
+
+  alumnosData.forEach(a => {
+
+    let presente = document.querySelector(`.presente[data-id="${a.id_alumno}"]`).checked;
+
+    if (presente) {
+
+      let horaActual = new Date().toTimeString().slice(0,5);
+
+      asistencias.push({
+        id_alumno: a.id_alumno,
+        fecha: fecha,
+        hora_salida: horaActual
+      });
+
+    }
+
+  });
+
+  if (asistencias.length === 0) {
+    alert('Seleccione al menos un alumno');
+    return;
+  }
+
+  fetch('../process/process_asistencia.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ asistencias })
+  })
+  .then(res => res.json())
+  .then(data => {
+
+    if (data.success) {
+      alert('✓ Salida registrada correctamente');
+    } else {
+      alert('Error: ' + data.error);
+    }
+
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Error al registrar salida');
+  });
+
+}
+
+// =========================
+// VALIDAR HORARIO SELECCIONADO
+// =========================
+function validarHorarioSeleccionado(){
+
+  let grupoId = document.getElementById('grupo').value;
+
+  if(!grupoId) return true;
+
+  let grupo = gruposData.find(g => g.id_grupo == grupoId);
+
+  if(!grupo) return true;
+
+  let ahora = new Date();
+  let horaActual = ahora.getHours().toString().padStart(2,'0') + ':' +
+                   ahora.getMinutes().toString().padStart(2,'0');
+
+  let inicio = grupo.hora_inicio ? grupo.hora_inicio.substring(0,5) : '00:00';
+  let fin = grupo.hora_fin.substring(0,5);
+
+  if(horaActual < inicio){
+    alert("⏳ La clase aún no empieza");
+    return false;
+  }
+
+  if(horaActual > fin){
+    alert("⚠ La clase ya terminó");
+    return false;
+  }
+
+  return true;
+}
+
+function registrarSalidaAlumno(id){
+
+  let fecha = document.getElementById('fecha').value;
+
+  let horaActual = new Date().toTimeString().slice(0,5);
+
+  fetch('../process/process_asistencia.php',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      asistencias: [{
+        id_alumno:id,
+        fecha:fecha,
+        hora_salida:horaActual
+      }]
+    })
+  })
+  .then(res => res.json())
+  .then(data=>{
+    alert(data.success ? "Salida registrada" : data.error);
+    cargarAlumnos();
+  });
+}
+
+function cargarHorariosHoy(){
+
+  fetch('../process/get_horarios.php')
+  .then(res => res.json())
+  .then(data => {
+
+    let html = '';
+
+    if(data.length === 0){
+      html = '<span class="text-gray-400">No hay horarios registrados</span>';
+    } else {
+
+      data.forEach(h => {
+
+        html += `
+        <div style="padding:8px;border-bottom:1px solid #eee;">
+          <strong style="color:#0f766e;">${h.curso}</strong> - ${h.grupo}<br>
+          <span class="text-gray-500">
+            ${h.dias || 'Sin días'} | ${h.hora_inicio} - ${h.hora_fin}
+          </span>
+        </div>`;
+
+      });
+
+    }
+
+    document.getElementById('horariosHoy').innerHTML = html;
+
+  })
+  .catch(err => {
+    console.error(err);
+  });
+
+}
+
+cargarHorariosHoy();
 
 </script>
 
