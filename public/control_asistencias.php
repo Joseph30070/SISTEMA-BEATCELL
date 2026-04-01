@@ -14,18 +14,23 @@ $cursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // =========================
 // HISTORIAL
 // =========================
-$stmt = $pdo->query("
-SELECT 
-    asl.id_asistencia,
-    a.nombre,
-    asl.fecha,
-    asl.hora_entrada,
-    asl.hora_salida
-FROM asistencias asl
-INNER JOIN alumnos a ON a.id_alumno = asl.id_alumno
-ORDER BY asl.fecha DESC
-LIMIT 100
-");
+$stmt = $pdo->prepare("
+  SELECT 
+      a.nombre,
+      c.nombre_curso,
+      g.nombre_grupo,
+      asl.fecha,
+      asl.hora_entrada,
+      asl.hora_salida
+  FROM asistencias asl
+  INNER JOIN alumnos a ON a.id_alumno = asl.id_alumno
+  INNER JOIN matriculas m ON m.id_alumno = a.id_alumno
+  INNER JOIN grupos g ON g.id_grupo = m.id_grupo
+  INNER JOIN cursos c ON c.id_curso = g.id_curso
+  WHERE asl.fecha = CURDATE()
+  ORDER BY asl.hora_entrada ASC
+  ");
+$stmt->execute();
 $historial = $stmt->fetchAll();
 
 ob_start();
@@ -107,6 +112,8 @@ ob_start();
 
 <h2 class="text-3xl font-bold mb-2">Control de Asistencia</h2>
 <p class="text-gray-600 mb-6">Vista basada en cursos → grupos → alumnos</p>
+
+<div id="horaActual" style="font-weight:bold;"></div>
 
 <div class="card">
   <h3 class="font-semibold mb-3">📅 Horarios de Hoy</h3>
@@ -194,6 +201,7 @@ ob_start();
         <th>DNI</th>
         <th>Teléfono</th>
         <th class="center">Presente</th>
+        <th class="center">Estado</th>
         <th class="center">Salida</th>
       </tr>
     </thead>
@@ -219,53 +227,125 @@ ob_start();
 <div class="card">
   <h3 class="font-semibold mb-4">Historial de Asistencia</h3>
 
+  <?php
+    $total = count($historial);
+    $presentes = 0;
+
+    foreach($historial as $h){
+        if($h['hora_entrada']) $presentes++;
+    }
+
+    $ausentes = $total - $presentes;
+    $porcentaje = $total > 0 ? round(($presentes/$total)*100) : 0;
+  ?>
+
+  <div class="card mb-4">
+    <div class="grid">
+
+      <div>
+        <label>Fecha</label>
+        <input type="date" id="filtroFecha"
+          class="border px-3 py-2 rounded w-full"
+          value="<?= date('Y-m-d') ?>">
+      </div>
+
+      <div>
+        <label>Curso</label>
+        <select id="filtroCurso" class="border px-3 py-2 rounded w-full">
+          <option value="">Todos</option>
+          <?php foreach($cursos as $c): ?>
+            <option value="<?= $c['id_curso'] ?>">
+              <?= htmlspecialchars($c['nombre_curso']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div>
+        <label>Grupo</label>
+        <select id="filtroGrupo" class="border px-3 py-2 rounded w-full">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+      <div style="display:flex;align-items:end;">
+        <button onclick="filtrarHistorial()"
+          class="bg-teal-600 text-white px-4 py-2 rounded w-full">
+          Filtrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="grid mb-4">
+    <div class="card stat">
+      Presentes
+      <div><?= $presentes ?></div>
+    </div>
+
+    <div class="card stat">
+      Ausentes
+      <div><?= $ausentes ?></div>
+    </div>
+
+    <div class="card stat">
+      Asistencia
+      <div><?= $porcentaje ?>%</div>
+    </div>
+  </div>
+
   <table class="shadow-sm">
 
     <thead>
       <tr>
         <th>Alumno</th>
-        <th>Fecha</th>
+        <th>Curso</th>
+        <th>Grupo</th>
         <th>Entrada</th>
         <th>Salida</th>
+        <th>Estado</th>
       </tr>
     </thead>
 
     <tbody>
 
-    <?php if($historial): ?>
-      <?php foreach($historial as $h): ?>
+      <?php if($historial): ?>
+        <?php foreach($historial as $h): ?>
+
+        <tr>
+          <td><?= htmlspecialchars($h['nombre']) ?></td>
+          <td><?= $h['nombre_curso'] ?></td>
+          <td><?= $h['nombre_grupo'] ?></td>
+
+          <td>
+            <?= $h['hora_entrada'] ? substr($h['hora_entrada'],0,5) : '-' ?>
+          </td>
+
+          <td>
+            <?= $h['hora_salida'] ? substr($h['hora_salida'],0,5) : '-' ?>
+          </td>
+
+          <td>
+            <?php if($h['hora_entrada'] && $h['hora_salida']): ?>
+              <span style="color:green;">✔ Completo</span>
+            <?php elseif($h['hora_entrada']): ?>
+              <span style="color:orange;">⏳ En clase</span>
+            <?php else: ?>
+              <span style="color:red;">✖ Ausente</span>
+            <?php endif; ?>
+          </td>
+
+        </tr>
+
+        <?php endforeach; ?>
+      <?php else: ?>
+
       <tr>
-        <td>
-          <strong style="color:#1f2937;">
-            <?= htmlspecialchars($h['nombre']) ?>
-          </strong>
-        </td>
-
-        <td><?= $h['fecha'] ?></td>
-
-        <td>
-          <span style="color:#16a34a; font-weight:600;">
-            <?= substr($h['hora_entrada'], 0, 5) ?>
-          </span>
-        </td>
-
-        <td>
-          <?php if($h['hora_salida']): ?>
-            <span style="color:#2563eb;">
-              <?= substr($h['hora_salida'], 0, 5) ?>
-            </span>
-          <?php else: ?>
-            <span style="color:#9ca3af;">-</span>
-          <?php endif; ?>
-        </td>
+        <td colspan="6" class="center">No hay registros hoy</td>
       </tr>
-      <?php endforeach; ?>
 
-    <?php else: ?>
-      <tr>
-        <td colspan="4" class="center">No hay registros</td>
-      </tr>
-    <?php endif; ?>
+      <?php endif; ?>
 
     </tbody>
 
@@ -363,6 +443,18 @@ function renderTabla() {
     tabla.innerHTML = '';
 
     alumnosData.forEach((a, i) => {
+
+    let checkedEntrada = a.estado_asistencia === 'entrada' || a.estado_asistencia === 'completo' ? 'checked' : '';
+    let disabledCheck = a.estado_asistencia !== 'sin' ? 'disabled' : '';
+    let botonSalida = a.estado_asistencia === 'entrada'
+      ? `<button onclick="registrarSalidaAlumno(${a.id_alumno})"
+            style="background:#2563eb;color:white;padding:4px 8px;border-radius:6px;">
+            Salida
+        </button>`
+      : a.estado_asistencia === 'completo'
+      ? `<span style="color:green;font-weight:bold;">✔</span>`
+      : '';
+
       tabla.innerHTML += `
       <tr>
         <td>${i+1}</td>
@@ -375,26 +467,20 @@ function renderTabla() {
         </td>
 
         <td>${a.dni}</td>
-
         <td>${a.telefono || '-'}</td>
 
+        <!-- ✔ PRESENTE -->
         <td class="center">
           <input type="checkbox"
             class="presente"
             data-id="${a.id_alumno}"
+            ${checkedEntrada}
+            ${disabledCheck}
             style="accent-color:#16a34a; transform:scale(1.2);"
-            onchange="toggle(${a.id_alumno}); actualizarStats()">
+            onchange="actualizarStats()">
         </td>
 
-        <td class="center">
-          <input type="checkbox"
-            class="ausente"
-            data-id="${a.id_alumno}"
-            style="accent-color:#dc2626; transform:scale(1.2);"
-            onchange="toggle(${a.id_alumno}); actualizarStats()">
-        </td>
-
-        <!-- ✅ ESTADO (YA TENÍAS) -->
+        <!-- ✔ ESTADO -->
         <td>
           ${a.estado_asistencia === 'completo'
             ? '<span style="color:green;font-weight:bold;">✔ Completo</span>'
@@ -404,13 +490,9 @@ function renderTabla() {
           }
         </td>
 
-        <!-- 🔥 NUEVO: BOTÓN SALIDA -->
+        <!-- ✔ SALIDA -->
         <td class="center">
-          <button 
-            onclick="registrarSalidaAlumno(${a.id_alumno})"
-            style="background:#2563eb;color:white;padding:5px 10px;border-radius:6px;font-size:12px;">
-            Salida
-          </button>
+          ${botonSalida}
         </td>
 
       </tr>`;
@@ -420,28 +502,20 @@ function renderTabla() {
 }
 
 // =========================
-// TOGGLE
-// =========================
-function toggle(id) {
-  let p = document.querySelector(`.presente[data-id="${id}"]`);
-  let a = document.querySelector(`.ausente[data-id="${id}"]`);
-
-  if (p.checked) a.checked = false;
-  if (a.checked) p.checked = false;
-}
-
-// =========================
 // STATS
 // =========================
 function actualizarStats() {
-  let p = document.querySelectorAll('.presente:checked').length;
-  let t = alumnosData.length;
-  let a = t - p;
-  let por = t ? Math.round((p/t)*100) : 0;
 
-  document.getElementById('presentes').textContent = p;
-  document.getElementById('ausentes').textContent = a;
-  document.getElementById('porcentaje').textContent = por+'%';
+  let total = alumnosData.length;
+
+  let presentes = document.querySelectorAll('.presente:checked').length;
+
+  let ausentes = total - presentes;
+  let porcentaje = total ? Math.round((presentes / total) * 100) : 0;
+
+  document.getElementById('presentes').textContent = presentes;
+  document.getElementById('ausentes').textContent = ausentes;
+  document.getElementById('porcentaje').textContent = porcentaje + '%';
 }
 
 // =========================
@@ -449,10 +523,13 @@ function actualizarStats() {
 // =========================
 function marcarTodos() {
   let c = document.getElementById('marcarTodos').checked;
+
   document.querySelectorAll('.presente').forEach(cb => {
-    cb.checked = c;
-    cb.closest('tr').querySelector('.ausente').checked = false;
+    if (!cb.disabled) {
+      cb.checked = c;
+    }
   });
+
   actualizarStats();
 }
 
@@ -627,6 +704,8 @@ function validarHorarioSeleccionado(){
 
 function registrarSalidaAlumno(id){
 
+  if(!validarHorarioSeleccionado()) return;
+
   let fecha = document.getElementById('fecha').value;
 
   let horaActual = new Date().toTimeString().slice(0,5);
@@ -684,7 +763,120 @@ function cargarHorariosHoy(){
 
 }
 
-cargarHorariosHoy();
+
+setInterval(() => {
+  let ahora = new Date();
+  let hora = ahora.toLocaleTimeString();
+  document.getElementById('horaActual').textContent = "Hora actual: " + hora;
+}, 1000);
+
+
+// =========================
+// EVENTOS FILTROS HISTORIAL
+// =========================
+
+// 🔥 Cuando cambia la fecha → filtra automáticamente
+document.getElementById('filtroFecha').addEventListener('change', filtrarHistorial);
+
+// 🔥 Cuando cambia el curso → cargar grupos dinámicamente
+document.getElementById('filtroCurso').addEventListener('change', function(){
+
+  let idCurso = this.value;
+  let selectGrupo = document.getElementById('filtroGrupo');
+
+  selectGrupo.innerHTML = '<option value="">Cargando...</option>';
+
+  if(!idCurso){
+    selectGrupo.innerHTML = '<option value="">Todos</option>';
+    return;
+  }
+
+  fetch(`../process/get_grupos.php?id_curso=${idCurso}`)
+  .then(res => res.json())
+  .then(data => {
+
+    selectGrupo.innerHTML = '<option value="">Todos</option>';
+
+    data.grupos.forEach(g => {
+      let op = document.createElement('option');
+      op.value = g.id_grupo;
+      op.textContent = g.nombre_grupo;
+      selectGrupo.appendChild(op);
+    });
+
+  });
+
+});
+
+// =========================
+// FILTRAR HISTORIAL
+// =========================
+
+function filtrarHistorial(){
+
+  let fecha = document.getElementById('filtroFecha').value;
+  let curso = document.getElementById('filtroCurso').value;
+  let grupo = document.getElementById('filtroGrupo').value;
+
+  fetch(`../process/get_historial_asistencias.php?fecha=${fecha}&id_curso=${curso}&id_grupo=${grupo}`)
+  .then(res => res.json())
+  .then(data => {
+
+    if(!data.success){
+      alert(data.error);
+      return;
+    }
+
+    renderHistorial(data.data);
+
+  });
+
+}
+
+function renderHistorial(data){
+
+  let tbody = document.querySelector('#contenido-historial tbody');
+
+  let html = '';
+
+  if(data.length === 0){
+    html = `<tr><td colspan="6">No hay registros</td></tr>`;
+  } else {
+
+    data.forEach(h => {
+
+      let estado = '';
+
+      if(h.hora_entrada && h.hora_salida){
+        estado = '<span style="color:green;">✔ Completo</span>';
+      } else if(h.hora_entrada){
+        estado = '<span style="color:orange;">⏳ En clase</span>';
+      } else {
+        estado = '<span style="color:red;">✖ Ausente</span>';
+      }
+
+      html += `
+      <tr>
+        <td>${h.nombre}</td>
+        <td>${h.nombre_curso}</td>
+        <td>${h.nombre_grupo}</td>
+        <td>${h.hora_entrada ? h.hora_entrada.substring(0,5) : '-'}</td>
+        <td>${h.hora_salida ? h.hora_salida.substring(0,5) : '-'}</td>
+        <td>${estado}</td>
+      </tr>`;
+    });
+
+  }
+
+  tbody.innerHTML = html;
+
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  filtrarHistorial();
+  cargarHorariosHoy();
+});
 
 </script>
 
