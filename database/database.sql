@@ -121,6 +121,8 @@ CREATE TABLE practicantes (
     id_carrera INT,
     horario VARCHAR(50),
 
+    observacion TEXT, -- NUEVO CAMPO
+
     fecha_baja DATE,
     fecha_registro DATE DEFAULT CURRENT_DATE,
 
