@@ -121,7 +121,7 @@ CREATE TABLE practicantes (
     id_carrera INT,
     horario VARCHAR(50),
 
-    observacion TEXT, -- NUEVO CAMPO
+    observacion TEXT,
 
     fecha_baja DATE,
     fecha_registro DATE DEFAULT CURRENT_DATE,
@@ -137,8 +137,12 @@ CREATE TABLE asistencias (
     id_asistencia INT AUTO_INCREMENT PRIMARY KEY,
     id_alumno INT NOT NULL,
     fecha DATE NOT NULL,
+
     hora_entrada TIME,
     hora_salida TIME,
+
+    estado VARCHAR(20) DEFAULT 'Pendiente',
+
     tareas_asignadas TEXT,
     tareas_terminadas TEXT,
 
@@ -153,8 +157,12 @@ CREATE TABLE asistencias_practicantes (
     id_asistencia INT AUTO_INCREMENT PRIMARY KEY,
     id_practicante INT NOT NULL,
     fecha DATE NOT NULL,
+
     hora_entrada TIME,
     hora_salida TIME,
+
+    estado VARCHAR(20) DEFAULT 'Pendiente',
+
     tareas_asignadas TEXT,
     tareas_terminadas TEXT,
 
@@ -162,7 +170,7 @@ CREATE TABLE asistencias_practicantes (
 );
 
 -- ======================================
--- PLANES DE PAGO (RELACIONADO A MATRICULA)
+-- PLANES DE PAGO
 -- ======================================
 
 CREATE TABLE planes_pago (

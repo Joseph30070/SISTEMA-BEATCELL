@@ -351,9 +351,44 @@ ob_start();
 
   </table>
 
+  <div class="card mt-4">
+    <h3>📊 Asistencia semanal</h3>
+    <canvas id="graficaAsistencia"></canvas>
+  </div>
+
+
+  <select id="selectorSemana" class="form-select w-auto mb-2">
+    <option value="actual">Semana actual</option>
+    <option value="anterior">Semana anterior</option>
+  </select>
+
+
+  <div class="card mt-4">
+    <h3 style="font-weight:bold;color:#0f766e;">
+      📊 Presentes vs Ausentes (Semana)
+    </h3>
+    <canvas id="graficaResumenSemana"></canvas>
+  </div>
+
+
+  <h5 class="mt-4">Tendencia mensual de asistencia</h5>
+
+  <canvas id="graficaMensual" height="100"></canvas>
+
+  <h5 class="mt-4">Resumen mensual</h5>
+
+  <canvas id="graficaResumenMensual" height="100"></canvas>
+
+
+
+
+
 </div>
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 
 <script>
 
@@ -872,10 +907,327 @@ function renderHistorial(data){
 
 }
 
+// =========================
+// grafica asistencia semanal
+// =========================
+
+let grafica;
+
+function cargarGraficaAsistencia(){
+
+  fetch('../process/get_estadisticas_asistencia.php')
+  .then(res => res.json())
+  .then(data => {
+
+    if(!data.success){
+      console.error(data.error);
+      return;
+    }
+
+    let dias = [];
+    let totales = [];
+
+    data.data.forEach(d => {
+      dias.push(d.dia);
+      totales.push(d.total);
+    });
+
+    let ctx = document.getElementById('graficaAsistencia').getContext('2d');
+
+    if(grafica){
+      grafica.destroy();
+    }
+
+    grafica = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: dias,
+        datasets: [{
+          label: 'Asistencias',
+          data: totales
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: true
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+  });
+
+}
+
+// =========================
+// GRAFICA COMPARATIVA PRESENTES vs AUSENTES (SEMANA)
+// =========================
+
+let graficaResumen;
+
+function cargarResumenSemana(){
+
+  let semana = document
+    .getElementById('selectorSemana')
+    .value;
+
+  fetch(`../process/get_resumen_semanal.php?semana=${semana}`)
+  .then(res => res.json())
+  .then(data => {
+
+    if(!data.success){
+      console.error(data.error);
+      return;
+    }
+
+    let dias = [];
+    let presentes = [];
+    let ausentes = [];
+
+    data.data.forEach(d => {
+
+      dias.push(d.dia);
+      presentes.push(d.presentes);
+      ausentes.push(d.ausentes);
+
+    });
+
+    let ctx = document
+      .getElementById('graficaResumenSemana')
+      .getContext('2d');
+
+    if(graficaResumen){
+      graficaResumen.destroy();
+    }
+
+    graficaResumen = new Chart(ctx, {
+
+      type: 'bar',
+
+      data: {
+        labels: dias,
+
+        datasets: [
+          {
+            label: 'Presentes',
+            data: presentes
+          },
+          {
+            label: 'Ausentes',
+            data: ausentes
+          }
+        ]
+      },
+
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+
+    });
+
+  });
+
+}
+
+// =========================
+// GRAFICA TENDENCIA MENSUAL
+// =========================
+
+let graficaMensual;
+
+function cargarGraficaMensual(){
+
+  fetch('../process/get_resumen_mensual.php')
+  .then(res => res.json())
+  .then(data => {
+
+    if(!data.success){
+      console.error(data.error);
+      return;
+    }
+
+    let dias = [];
+    let asistencias = [];
+
+    data.data.forEach(d => {
+
+      dias.push(d.dia);
+      asistencias.push(d.asistencias);
+
+    });
+
+    let ctx = document
+      .getElementById('graficaMensual')
+      .getContext('2d');
+
+    if(graficaMensual){
+      graficaMensual.destroy();
+    }
+
+    graficaMensual = new Chart(ctx, {
+
+      type: 'line',
+
+      data: {
+
+        labels: dias,
+
+        datasets: [
+          {
+            label: 'Asistencias por día',
+            data: asistencias,
+            tension: 0.3
+          }
+        ]
+
+      },
+
+      options: {
+
+        responsive: true,
+
+        plugins: {
+          legend: {
+            display: true
+          }
+        },
+
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+
+      }
+
+    });
+
+  });
+
+}
+
+// =========================
+// GRAFICA RESUMEN MENSUAL PRESENTES vs AUSENTES
+// =========================
+
+let graficaResumenMensual;
+
+function cargarResumenMensual(){
+
+  fetch('../process/get_resumen_mensual.php')
+  .then(res => res.json())
+  .then(data => {
+
+    if(!data.success){
+      console.error(data.error);
+      return;
+    }
+
+    let asistencias = data.total_asistencias;
+    let ausentes = data.total_ausentes;
+
+    let ctx = document
+      .getElementById('graficaResumenMensual')
+      .getContext('2d');
+
+    if(graficaResumenMensual){
+      graficaResumenMensual.destroy();
+    }
+
+    graficaResumenMensual = new Chart(ctx, {
+
+      type: 'bar',
+
+      data: {
+
+        labels: [
+          'Asistencias',
+          'Ausentes'
+        ],
+
+        datasets: [
+          {
+            label: 'Resumen mensual',
+            data: [
+              asistencias,
+              ausentes
+            ]
+          }
+        ]
+
+      },
+
+      options: {
+
+        responsive: true,
+
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+
+      }
+
+    });
+
+  });
+
+}
+
+
+
+
+
+// =========================
+// EVENTOS DOM CONTENT LOADED
+// =========================
 
 document.addEventListener('DOMContentLoaded', () => {
+
+  // CARGAS INICIALES
   filtrarHistorial();
   cargarHorariosHoy();
+  cargarGraficaAsistencia();
+  cargarResumenSemana();
+  cargarGraficaMensual(); 
+  cargarResumenMensual(); // NUEVA
+
+  // EVENTOS
+
+  // Filtro por fecha
+  document
+    .getElementById('filtroFecha')
+    .addEventListener('change', filtrarHistorial);
+
+  // Filtro por curso
+  document
+    .getElementById('filtroCurso')
+    .addEventListener('change', function(){
+
+      let idCurso = this.value;
+
+      cargarGrupos(idCurso);
+
+    });
+
+  // Selector de semana
+  document
+    .getElementById('selectorSemana')
+    .addEventListener('change', cargarResumenSemana);
+
 });
 
 </script>
