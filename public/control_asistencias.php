@@ -144,80 +144,72 @@ ob_start();
 <!-- ========================= -->
 <div id="contenido-asistencia" class="tab-content">
 
-<!-- SELECTORES -->
-<div class="card">
-  <h3 class="font-semibold mb-4">Seleccionar Clase</h3>
+  <!-- SELECTORES -->
+  <div class="card">
+    <h3 class="font-semibold mb-4">Seleccionar Clase</h3>
 
+    <div class="grid">
+      <div>
+        <label>Fecha</label>
+        <input type="date" id="fecha" class="border px-3 py-2 rounded w-full" value="<?= date('Y-m-d') ?>">
+      </div>
+
+      <div>
+        <label>Curso</label>
+        <select id="curso" class="border px-3 py-2 rounded w-full" onchange="cargarGrupos()">
+          <option value="">-- Seleccione Curso --</option>
+          <?php foreach($cursos as $c): ?>
+            <option value="<?= $c['id_curso'] ?>">
+              <?= htmlspecialchars($c['nombre_curso']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div>
+        <label>Grupo</label>
+        <select id="grupo" class="border px-3 py-2 rounded w-full" onchange="cargarAlumnos()">
+          <option value="">-- Primero seleccione curso --</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="infoGrupo" class="mt-4 text-sm text-gray-600"></div>
+  </div>
+
+  <!-- STATS -->
   <div class="grid">
-    <div>
-      <label>Fecha</label>
-      <input type="date" id="fecha" class="border px-3 py-2 rounded w-full" value="<?= date('Y-m-d') ?>">
-    </div>
-
-    <div>
-      <label>Curso</label>
-      <select id="curso" class="border px-3 py-2 rounded w-full" onchange="cargarGrupos()">
-        <option value="">-- Seleccione Curso --</option>
-        <?php foreach($cursos as $c): ?>
-          <option value="<?= $c['id_curso'] ?>">
-            <?= htmlspecialchars($c['nombre_curso']) ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-    </div>
-
-    <div>
-      <label>Grupo</label>
-      <select id="grupo" class="border px-3 py-2 rounded w-full" onchange="cargarAlumnos()">
-        <option value="">-- Primero seleccione curso --</option>
-      </select>
-    </div>
+    <div class="card stat">Presentes<div id="presentes">0</div></div>
+    <div class="card stat">Ausentes<div id="ausentes">0</div></div>
+    <div class="card stat">Porcentaje<div id="porcentaje">0%</div></div>
   </div>
 
-  <div id="infoGrupo" class="mt-4 text-sm text-gray-600"></div>
-</div>
+  <!-- TABLA -->
+  <div class="card">
+    <h3 class="font-semibold mb-4">Alumnos del Grupo</h3>
 
-<!-- STATS -->
-<div class="grid">
-  <div class="card stat">Presentes<div id="presentes">0</div></div>
-  <div class="card stat">Ausentes<div id="ausentes">0</div></div>
-  <div class="card stat">Porcentaje<div id="porcentaje">0%</div></div>
-</div>
+    <table class="shadow-sm">
 
-<!-- TABLA -->
-<div class="card">
-  <h3 class="font-semibold mb-4">Alumnos del Grupo</h3>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Alumno</th>
+          <th>DNI</th>
+          <th>Teléfono</th>
+          <th class="center">Acción</th>
+          <th class="center">Estado</th>
+          <th class="center">Salida</th>
+        </tr>
+      </thead>
 
-  <label>
-    <input type="checkbox" id="marcarTodos" onchange="marcarTodos()"> Marcar todos como presentes
-  </label>
+      <tbody id="tabla"></tbody>
 
-  <table class="shadow-sm">
+    </table>
 
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Alumno</th>
-        <th>DNI</th>
-        <th>Teléfono</th>
-        <th class="center">Presente</th>
-        <th class="center">Estado</th>
-        <th class="center">Salida</th>
-      </tr>
-    </thead>
-
-    <tbody id="tabla"></tbody>
-
-  </table>
-
-  <div class="text-right mt-4">
-    <button class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700" onclick="guardarAsistencia()">
-      Guardar Asistencia
-    </button>
   </div>
-</div>
 
 </div>
+
 
 <!-- ========================= -->
 <!-- TAB HISTORIAL -->
@@ -474,235 +466,196 @@ function cargarAlumnos() {
 // RENDER TABLA
 // =========================
 function renderTabla() {
-  let tabla = document.getElementById('tabla');
-    tabla.innerHTML = '';
 
-    alumnosData.forEach((a, i) => {
+    let tabla = document.getElementById("tabla");
 
-    let checkedEntrada = a.estado_asistencia === 'entrada' || a.estado_asistencia === 'completo' ? 'checked' : '';
-    let disabledCheck = a.estado_asistencia !== 'sin' ? 'disabled' : '';
-    let botonSalida = a.estado_asistencia === 'entrada'
-      ? `<button onclick="registrarSalidaAlumno(${a.id_alumno})"
-            style="background:#2563eb;color:white;padding:4px 8px;border-radius:6px;">
-            Salida
-        </button>`
-      : a.estado_asistencia === 'completo'
-      ? `<span style="color:green;font-weight:bold;">✔</span>`
-      : '';
+    tabla.innerHTML = "";
 
-      tabla.innerHTML += `
-      <tr>
-        <td>${i+1}</td>
-        
-        <td>
-          <strong style="color:#1f2937;">${a.nombre}</strong><br>
-          <span class="text-gray-600 text-sm">
-            Contacto: ${a.contacto_pago}
-          </span>
-        </td>
+    alumnosData.forEach((alumno, index) => {
 
-        <td>${a.dni}</td>
-        <td>${a.telefono || '-'}</td>
+        tabla.innerHTML += crearFilaAlumno(
+            alumno,
+            index
+        );
 
-        <!-- ✔ PRESENTE -->
-        <td class="center">
-          <input type="checkbox"
-            class="presente"
-            data-id="${a.id_alumno}"
-            ${checkedEntrada}
-            ${disabledCheck}
-            style="accent-color:#16a34a; transform:scale(1.2);"
-            onchange="actualizarStats()">
-        </td>
-
-        <!-- ✔ ESTADO -->
-        <td>
-          ${a.estado_asistencia === 'completo'
-            ? '<span style="color:green;font-weight:bold;">✔ Completo</span>'
-            : a.estado_asistencia === 'entrada'
-            ? '<span style="color:orange;">⏳ En clase</span>'
-            : '<span style="color:red;">✖ Sin marcar</span>'
-          }
-        </td>
-
-        <!-- ✔ SALIDA -->
-        <td class="center">
-          ${botonSalida}
-        </td>
-
-      </tr>`;
     });
 
-    actualizarStats();
-}
-
-// =========================
-// STATS
-// =========================
-function actualizarStats() {
-
-  let total = alumnosData.length;
-
-  let presentes = document.querySelectorAll('.presente:checked').length;
-
-  let ausentes = total - presentes;
-  let porcentaje = total ? Math.round((presentes / total) * 100) : 0;
-
-  document.getElementById('presentes').textContent = presentes;
-  document.getElementById('ausentes').textContent = ausentes;
-  document.getElementById('porcentaje').textContent = porcentaje + '%';
-}
-
-// =========================
-// MARCAR TODOS
-// =========================
-function marcarTodos() {
-  let c = document.getElementById('marcarTodos').checked;
-
-  document.querySelectorAll('.presente').forEach(cb => {
-    if (!cb.disabled) {
-      cb.checked = c;
-    }
-  });
-
-  actualizarStats();
-}
-
-// =========================
-// GUARDAR
-// =========================
-
-function guardarAsistencia() {
-
-  if(!validarHorarioSeleccionado()) return;
-
-  let fecha = document.getElementById('fecha').value;
-  let grupo = document.getElementById('grupo').value;
-
-  if (!fecha || !grupo) {
-    alert('Seleccione fecha y grupo');
-    return;
-  }
-
-  let asistencias = [];
-
-  alumnosData.forEach(a => {
-
-    let presente = document.querySelector(`.presente[data-id="${a.id_alumno}"]`).checked;
-
-    if (presente) {
-
-      let horaActual = new Date().toTimeString().slice(0,5);
-
-      asistencias.push({
-        id_alumno: a.id_alumno,
-        fecha: fecha,
-        hora_entrada: horaActual
-      });
-
-    }
-
-  });
-
-  if (asistencias.length === 0) {
-    alert('Marque al menos un alumno como presente');
-    return;
-  }
-
-  fetch('../process/process_asistencia.php', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ asistencias })
-  })
-  .then(res => res.json())
-  .then(data => {
-
-    if (data.success) {
-      alert('✓ Asistencia guardada correctamente');
-
-      // ✅ AQUÍ va la limpieza
-      document.getElementById('marcarTodos').checked = false;
-      cargarAlumnos();
-
-    } else {
-      alert('Error: ' + data.error);
-    }
-
-  })
-  .catch(err => {
-    console.error(err);
-    alert('Error al guardar asistencia');
-  });
+    actualizarEstadisticas();
 
 }
 
+
 // =========================
-// REGISTRAR SALIDA
+// marcar asistencia
 // =========================
 
+function crearFilaAlumno(alumno, index) {
 
-function registrarSalida() {
+    let estado = alumno.estado ?? "Pendiente";
 
-  if(!validarHorarioSeleccionado()) return;
+    let color = "gray";
 
-  let fecha = document.getElementById('fecha').value;
-  let grupo = document.getElementById('grupo').value;
+    if (estado === "Asistió")
+        color = "green";
 
-  if (!fecha || !grupo) {
-    alert('Seleccione fecha y grupo');
-    return;
-  }
+    if (estado === "Ausente")
+        color = "red";
 
-  let asistencias = [];
+    return `
+        <tr>
 
-  alumnosData.forEach(a => {
+            <td>${index + 1}</td>
 
-    let presente = document.querySelector(`.presente[data-id="${a.id_alumno}"]`).checked;
+            <td>${alumno.nombre}</td>
 
-    if (presente) {
+            <td>${alumno.dni}</td>
 
-      let horaActual = new Date().toTimeString().slice(0,5);
+            <td>${alumno.telefono ?? ''}</td>
 
-      asistencias.push({
-        id_alumno: a.id_alumno,
-        fecha: fecha,
-        hora_salida: horaActual
-      });
+            <td class="center">
 
-    }
+                <button 
+                    class="bg-green-500 text-white px-2 py-1 rounded"
+                    onclick="marcarAsistencia(${alumno.id_asistencia}, 'Asistió')">
 
-  });
+                    Asistió
 
-  if (asistencias.length === 0) {
-    alert('Seleccione al menos un alumno');
-    return;
-  }
+                </button>
 
-  fetch('../process/process_asistencia.php', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ asistencias })
-  })
-  .then(res => res.json())
-  .then(data => {
+                <button 
+                    class="bg-red-500 text-white px-2 py-1 rounded"
+                    onclick="marcarAsistencia(${alumno.id_asistencia}, 'Ausente')">
 
-    if (data.success) {
-      alert('✓ Salida registrada correctamente');
-    } else {
-      alert('Error: ' + data.error);
-    }
+                    Ausente
 
-  })
-  .catch(err => {
-    console.error(err);
-    alert('Error al registrar salida');
-  });
+                </button>
+
+            </td>
+
+            <td class="center">
+
+                <span 
+                    id="estado-${alumno.id_asistencia}"
+                    class="px-2 py-1 rounded text-white bg-${color}-500">
+
+                    ${estado}
+
+                </span>
+
+            </td>
+
+            <td class="center">
+
+                ${alumno.hora_salida ?? '--'}
+
+            </td>
+
+        </tr>
+    `;
+}
+
+// =========================
+// actualizar estadísticas
+// =========================
+
+function actualizarEstadisticas() {
+
+    let estados =
+        document.querySelectorAll("[id^='estado-']");
+
+    let presentes = 0;
+    let ausentes = 0;
+
+    estados.forEach(e => {
+
+        if (e.innerText === "Asistió")
+            presentes++;
+
+        if (e.innerText === "Ausente")
+            ausentes++;
+
+    });
+
+    let total = estados.length;
+
+    let porcentaje =
+        total > 0
+        ? Math.round((presentes / total) * 100)
+        : 0;
+
+    document.getElementById("presentes")
+        .innerText = presentes;
+
+    document.getElementById("ausentes")
+        .innerText = ausentes;
+
+    document.getElementById("porcentaje")
+        .innerText = porcentaje + "%";
 
 }
+
+
+// =========================
+// MARCAR ASISTENCIA
+// =========================
+
+function marcarAsistencia(id_asistencia, estado) {
+
+    console.log("ID:", id_asistencia);
+    console.log("Estado:", estado);
+
+    fetch("../process/actualizar_estado.php", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+
+        body:
+            "id_asistencia=" + id_asistencia +
+            "&estado=" + estado
+
+    })
+    .then(res => res.json())
+
+    .then(data => {
+
+        if (data.success) {
+
+            let badge =
+                document.getElementById(
+                    "estado-" + id_asistencia
+                );
+
+            badge.innerText = estado;
+
+            if (estado === "Asistió") {
+
+                badge.className =
+                    "px-2 py-1 rounded text-white bg-green-500";
+
+            }
+
+            if (estado === "Ausente") {
+
+                badge.className =
+                    "px-2 py-1 rounded text-white bg-red-500";
+
+            }
+
+            actualizarEstadisticas();
+
+        } else {
+
+            alert("Error al actualizar");
+
+        }
+
+    });
+
+}
+
 
 // =========================
 // VALIDAR HORARIO SELECCIONADO
@@ -737,31 +690,6 @@ function validarHorarioSeleccionado(){
   return true;
 }
 
-function registrarSalidaAlumno(id){
-
-  if(!validarHorarioSeleccionado()) return;
-
-  let fecha = document.getElementById('fecha').value;
-
-  let horaActual = new Date().toTimeString().slice(0,5);
-
-  fetch('../process/process_asistencia.php',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      asistencias: [{
-        id_alumno:id,
-        fecha:fecha,
-        hora_salida:horaActual
-      }]
-    })
-  })
-  .then(res => res.json())
-  .then(data=>{
-    alert(data.success ? "Salida registrada" : data.error);
-    cargarAlumnos();
-  });
-}
 
 function cargarHorariosHoy(){
 

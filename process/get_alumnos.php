@@ -11,11 +11,45 @@ try {
 
     $id_grupo = $_GET['id_grupo'] ?? null;
 
+    // VALIDAR PRIMERO
+
     if (!$id_grupo) {
         throw new Exception("ID de grupo requerido");
     }
 
-    // Obtener alumnos del grupo
+    // ======================================
+    // CREAR ASISTENCIAS DEL DÍA SI NO EXISTEN
+    // ======================================
+
+    $stmtCrear = $pdo->prepare("
+        INSERT INTO asistencias (
+            id_alumno,
+            fecha,
+            estado
+        )
+        SELECT 
+            a.id_alumno,
+            CURDATE(),
+            'Pendiente'
+        FROM alumnos a
+        INNER JOIN matriculas m 
+            ON m.id_alumno = a.id_alumno
+        WHERE m.id_grupo = ?
+        AND a.fecha_baja IS NULL
+        AND NOT EXISTS (
+            SELECT 1
+            FROM asistencias s
+            WHERE s.id_alumno = a.id_alumno
+            AND s.fecha = CURDATE()
+        )
+    ");
+
+    $stmtCrear->execute([$id_grupo]);
+
+    // ======================================
+    // OBTENER ALUMNOS
+    // ======================================
+
     $stmt = $pdo->prepare("
         SELECT 
             a.id_alumno,
@@ -27,18 +61,16 @@ try {
             a.contacto_pago,
             m.id_matricula,
 
+            asl.id_asistencia,
             asl.hora_entrada,
             asl.hora_salida,
 
-            CASE 
-                WHEN asl.hora_entrada IS NOT NULL AND asl.hora_salida IS NOT NULL THEN 'completo'
-                WHEN asl.hora_entrada IS NOT NULL THEN 'entrada'
-                ELSE 'sin'
-            END AS estado_asistencia
+            COALESCE(asl.estado, 'Pendiente') AS estado
 
         FROM alumnos a
 
-        INNER JOIN matriculas m ON m.id_alumno = a.id_alumno
+        INNER JOIN matriculas m 
+            ON m.id_alumno = a.id_alumno
 
         LEFT JOIN asistencias asl 
             ON asl.id_alumno = a.id_alumno 
@@ -51,6 +83,7 @@ try {
     ");
 
     $stmt->execute([$id_grupo]);
+
     $alumnos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
@@ -66,3 +99,4 @@ try {
     ]);
 
 }
+
