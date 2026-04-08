@@ -220,16 +220,31 @@ ob_start();
   <h3 class="font-semibold mb-4">Historial de Asistencia</h3>
 
   <?php
-    $total = count($historial);
-    $presentes = 0;
+      $total = count($historial);
+      $presentes = 0;
+      $ausentes = 0;
 
-    foreach($historial as $h){
-        if($h['hora_entrada']) $presentes++;
-    }
+      foreach($historial as $h){
 
-    $ausentes = $total - $presentes;
-    $porcentaje = $total > 0 ? round(($presentes/$total)*100) : 0;
+          if(isset($h['estado']) && $h['estado'] === 'Asistió'){
+              $presentes++;
+          }
+
+          if(isset($h['estado']) && $h['estado'] === 'Ausente'){
+              $ausentes++;
+          }
+
+      }
+
+      $evaluados = $presentes + $ausentes;
+
+      $porcentaje =
+          $evaluados > 0
+          ? round(($presentes / $evaluados) * 100)
+          : 0;
+
   ?>
+
 
   <div class="card mb-4">
     <div class="grid">
@@ -318,15 +333,34 @@ ob_start();
             <?= $h['hora_salida'] ? substr($h['hora_salida'],0,5) : '-' ?>
           </td>
 
-          <td>
-            <?php if($h['hora_entrada'] && $h['hora_salida']): ?>
-              <span style="color:green;">✔ Completo</span>
-            <?php elseif($h['hora_entrada']): ?>
-              <span style="color:orange;">⏳ En clase</span>
-            <?php else: ?>
-              <span style="color:red;">✖ Ausente</span>
-            <?php endif; ?>
-          </td>
+            <td>
+
+                <?php
+
+                  // 🔥 Definir estado de forma segura
+                  $estado =
+                      $h['estado']
+                      ?? 'Pendiente';
+
+                ?>
+
+                <?php if($estado === 'Asistió'): ?>
+
+                  <span style="color:green;">✔ Asistió</span>
+
+                <?php elseif($estado === 'Ausente'): ?>
+
+                  <span style="color:red;">✖ Ausente</span>
+
+                <?php else: ?>
+
+                  <span style="color:gray;">⏳ Pendiente</span>
+
+                <?php endif; ?>
+
+            </td>
+
+
 
         </tr>
 
@@ -409,36 +443,125 @@ let gruposData = [];
 // CARGAR GRUPOS
 // =========================
 function cargarGrupos() {
-  let cursoId = document.getElementById('curso').value;
-  let selectGrupo = document.getElementById('grupo');
 
-  selectGrupo.innerHTML = '<option value="">-- Cargando... --</option>';
-  alumnosData = [];
-  document.getElementById('tabla').innerHTML = '';
+    let cursoId =
+        document.getElementById('curso').value;
 
-  if (!cursoId) {
-    selectGrupo.innerHTML = '<option value="">-- Primero seleccione curso --</option>';
-    return;
-  }
+    let selectGrupo =
+        document.getElementById('grupo');
 
-  fetch(`../process/get_grupos.php?id_curso=${cursoId}`)
+    selectGrupo.innerHTML =
+        '<option value="">-- Cargando... --</option>';
+
+    alumnosData = [];
+    document.getElementById('tabla').innerHTML = '';
+
+    if (!cursoId) {
+
+      selectGrupo.innerHTML =
+        '<option value="">-- Primero seleccione curso --</option>';
+
+      return;
+
+    }
+
+    fetch(
+      `../process/get_grupos.php?id_curso=${cursoId}`
+    )
     .then(res => res.json())
     .then(data => {
+
       if (data.success) {
+
         gruposData = data.grupos;
-        selectGrupo.innerHTML = '<option value="">-- Seleccione Grupo --</option>';
+
+        selectGrupo.innerHTML =
+          '<option value="">-- Seleccione Grupo --</option>';
 
         data.grupos.forEach(g => {
-          let op = document.createElement('option');
-          op.value = g.id_grupo;
-          op.textContent = g.nombre_grupo;
-          op.dataset.dias = g.dias;
-          op.dataset.hora = `${g.hora_inicio.substring(0,5)} - ${g.hora_fin.substring(0,5)}`;
+
+          let op =
+            document.createElement('option');
+
+          op.value =
+            g.id_grupo;
+
+          op.textContent =
+            g.nombre_grupo;
+
+          op.dataset.dias =
+            g.dias;
+
+          op.dataset.hora =
+            `${g.hora_inicio.substring(0,5)} - ${g.hora_fin.substring(0,5)}`;
+
           selectGrupo.appendChild(op);
+
         });
+
       }
+
     });
+
 }
+
+// =========================
+// CARGAR GRUPOS FILTRO HISTORIAL
+// =========================
+
+function cargarGruposFiltro(){
+
+  let idCurso =
+      document.getElementById('filtroCurso').value;
+
+  let selectGrupo =
+      document.getElementById('filtroGrupo');
+
+  selectGrupo.innerHTML =
+      '<option value="">Cargando...</option>';
+
+  if(!idCurso){
+
+    selectGrupo.innerHTML =
+      '<option value="">Todos</option>';
+
+    return;
+
+  }
+
+  fetch(
+    `../process/get_grupos.php?id_curso=${idCurso}`
+  )
+  .then(res => res.json())
+  .then(data => {
+
+    selectGrupo.innerHTML =
+      '<option value="">Todos</option>';
+
+    data.grupos.forEach(g => {
+
+      let op =
+        document.createElement('option');
+
+      op.value =
+        g.id_grupo;
+
+      op.textContent =
+        g.nombre_grupo;
+
+      selectGrupo.appendChild(op);
+
+    });
+
+    filtrarHistorial();
+
+
+  });
+
+}
+
+
+
 
 // =========================
 // CARGAR ALUMNOS
@@ -741,35 +864,6 @@ setInterval(() => {
 // 🔥 Cuando cambia la fecha → filtra automáticamente
 document.getElementById('filtroFecha').addEventListener('change', filtrarHistorial);
 
-// 🔥 Cuando cambia el curso → cargar grupos dinámicamente
-document.getElementById('filtroCurso').addEventListener('change', function(){
-
-  let idCurso = this.value;
-  let selectGrupo = document.getElementById('filtroGrupo');
-
-  selectGrupo.innerHTML = '<option value="">Cargando...</option>';
-
-  if(!idCurso){
-    selectGrupo.innerHTML = '<option value="">Todos</option>';
-    return;
-  }
-
-  fetch(`../process/get_grupos.php?id_curso=${idCurso}`)
-  .then(res => res.json())
-  .then(data => {
-
-    selectGrupo.innerHTML = '<option value="">Todos</option>';
-
-    data.grupos.forEach(g => {
-      let op = document.createElement('option');
-      op.value = g.id_grupo;
-      op.textContent = g.nombre_grupo;
-      selectGrupo.appendChild(op);
-    });
-
-  });
-
-});
 
 // =========================
 // FILTRAR HISTORIAL
@@ -791,6 +885,8 @@ function filtrarHistorial(){
     }
 
     renderHistorial(data.data);
+    actualizarStatsHistorial(data.data);
+
 
   });
 
@@ -810,12 +906,23 @@ function renderHistorial(data){
 
       let estado = '';
 
-      if(h.hora_entrada && h.hora_salida){
-        estado = '<span style="color:green;">✔ Completo</span>';
-      } else if(h.hora_entrada){
-        estado = '<span style="color:orange;">⏳ En clase</span>';
-      } else {
-        estado = '<span style="color:red;">✖ Ausente</span>';
+      if(h.estado === "Asistió"){
+
+          estado =
+            '<span style="color:green;">✔ Asistió</span>';
+
+        }
+        else if(h.estado === "Ausente"){
+
+          estado =
+            '<span style="color:red;">✖ Ausente</span>';
+
+        }
+        else{
+
+          estado =
+            '<span style="color:gray;">⏳ Pendiente</span>';
+
       }
 
       html += `
@@ -1115,6 +1222,51 @@ function cargarResumenMensual(){
 
 }
 
+// =========================
+// ACTUALIZAR STATS HISTORIAL
+// =========================
+
+function actualizarStatsHistorial(data){
+
+  let presentes = 0;
+  let ausentes = 0;
+
+  data.forEach(h => {
+
+    if(h.estado === "Asistió")
+        presentes++;
+
+    if(h.estado === "Ausente")
+        ausentes++;
+
+  });
+
+  let evaluados =
+      presentes + ausentes;
+
+  let porcentaje =
+      evaluados > 0
+      ? Math.round(
+          (presentes / evaluados) * 100
+        )
+      : 0;
+
+  document.querySelectorAll(
+    ".stat div"
+  )[0].innerText = presentes;
+
+  document.querySelectorAll(
+    ".stat div"
+  )[1].innerText = ausentes;
+
+  document.querySelectorAll(
+    ".stat div"
+  )[2].innerText =
+    porcentaje + "%";
+
+}
+
+
 
 
 
@@ -1125,36 +1277,52 @@ function cargarResumenMensual(){
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  // =========================
   // CARGAS INICIALES
-  filtrarHistorial();
-  cargarHorariosHoy();
-  cargarGraficaAsistencia();
-  cargarResumenSemana();
-  cargarGraficaMensual(); 
-  cargarResumenMensual(); // NUEVA
+  // =========================
 
+    filtrarHistorial();
+    cargarHorariosHoy();
+    cargarGraficaAsistencia();
+    cargarResumenSemana();
+    cargarGraficaMensual(); 
+    cargarResumenMensual();
+
+  // =========================
   // EVENTOS
+  // =========================
 
-  // Filtro por fecha
-  document
-    .getElementById('filtroFecha')
-    .addEventListener('change', filtrarHistorial);
+      // Filtro por fecha
+      document
+        .getElementById('filtroFecha')
+        .addEventListener(
+          'change',
+          filtrarHistorial
+        );
 
-  // Filtro por curso
-  document
-    .getElementById('filtroCurso')
-    .addEventListener('change', function(){
+      // Filtro por curso
+      document
+        .getElementById('filtroCurso')
+        .addEventListener(
+          'change',
+          cargarGruposFiltro
+        );
 
-      let idCurso = this.value;
+      // 🔥 Filtro por grupo (FALTABA ESTE)
+      document
+        .getElementById('filtroGrupo')
+        .addEventListener(
+          'change',
+          filtrarHistorial
+        );
 
-      cargarGrupos(idCurso);
-
-    });
-
-  // Selector de semana
-  document
-    .getElementById('selectorSemana')
-    .addEventListener('change', cargarResumenSemana);
+      // Selector de semana
+      document
+        .getElementById('selectorSemana')
+        .addEventListener(
+          'change',
+          cargarResumenSemana
+        );
 
 });
 
