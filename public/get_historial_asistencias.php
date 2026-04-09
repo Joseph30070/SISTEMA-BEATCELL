@@ -35,29 +35,34 @@ try {
 
     $sql = "
 
-    SELECT 
-        a.nombre,
-        c.nombre_curso,
-        g.nombre_grupo,
-        asl.fecha,
-        asl.hora_entrada,
-        asl.hora_salida,
-        asl.estado
+        SELECT 
+            a.nombre,
+            c.nombre_curso,
+            g.nombre_grupo,
+            asl.fecha,
+            asl.hora_entrada,
+            asl.hora_salida,
+            asl.estado
 
-    FROM asistencias asl
+        FROM asistencias asl
 
-    INNER JOIN alumnos a
-        ON a.id_alumno = asl.id_alumno
+        INNER JOIN alumnos a
+            ON a.id_alumno = asl.id_alumno
 
-    INNER JOIN grupos g
-        ON g.id_grupo = asl.id_grupo
+        INNER JOIN matriculas m
+            ON m.id_alumno = a.id_alumno
 
-    INNER JOIN cursos c
-        ON c.id_curso = g.id_curso
+        INNER JOIN grupos g
+            ON g.id_grupo = m.id_grupo
 
-    WHERE asl.fecha = ?
+        INNER JOIN cursos c
+            ON c.id_curso = g.id_curso
+
+        WHERE DATE(asl.fecha) = ?
 
     ";
+
+
 
     $params = [$fecha];
 

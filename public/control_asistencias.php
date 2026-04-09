@@ -276,10 +276,13 @@ ob_start();
       </div>
 
       <div style="display:flex;align-items:end;">
-        <button onclick="filtrarHistorial()"
+        <button
+          type="button"
+          onclick="filtrarHistorial()"
           class="bg-teal-600 text-white px-4 py-2 rounded w-full">
           Filtrar
         </button>
+
       </div>
 
     </div>
@@ -871,26 +874,44 @@ document.getElementById('filtroFecha').addEventListener('change', filtrarHistori
 
 function filtrarHistorial(){
 
-  let fecha = document.getElementById('filtroFecha').value;
-  let curso = document.getElementById('filtroCurso').value;
-  let grupo = document.getElementById('filtroGrupo').value;
+  let fecha =
+    document.getElementById('filtroFecha').value;
 
-  fetch(`../process/get_historial_asistencias.php?fecha=${fecha}&id_curso=${curso}&id_grupo=${grupo}`)
+  let curso =
+    document.getElementById('filtroCurso').value;
+
+  let grupo =
+    document.getElementById('filtroGrupo').value;
+
+  fetch(
+    `get_historial_asistencias.php?fecha=${fecha}&id_curso=${curso}&id_grupo=${grupo}`
+  )
   .then(res => res.json())
   .then(data => {
 
     if(!data.success){
+
       alert(data.error);
+
       return;
+
     }
 
     renderHistorial(data.data);
+
     actualizarStatsHistorial(data.data);
 
+  })
+  .catch(error => {
+
+    console.error(error);
+
+    alert("Error al cargar historial");
 
   });
 
 }
+
 
 function renderHistorial(data){
 
