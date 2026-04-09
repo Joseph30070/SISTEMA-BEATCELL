@@ -508,6 +508,30 @@ function mostrarTab(tab) {
     document.getElementById(`tab-${tab}`).classList.remove('text-gray-600');
 }
 
+const alumnosData = <?= json_encode($alumnos, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>;
+
+function getVisibleAlumnos() {
+    const texto = document.getElementById('buscar').value.toLowerCase();
+    const estado = document.getElementById('filtroEstado').value;
+    const curso = document.getElementById('filtroCurso').value.toLowerCase();
+    const grupo = document.getElementById('filtroGrupo').value.toLowerCase();
+
+    return alumnosData.filter(a => {
+        const nombre = (a.nombre ?? '').toLowerCase();
+        const dni = (a.dni ?? '').toLowerCase();
+        const cursoFila = (a.nombre_curso ?? '').toLowerCase();
+        const grupoFila = (a.nombre_grupo ?? '').toLowerCase();
+        const estadoFila = (a.estado ?? '').trim();
+
+        const matchTexto = !texto || nombre.includes(texto) || dni.includes(texto);
+        const matchEstado = !estado || estado === '' || estadoFila === estado;
+        const matchCurso = !curso || cursoFila.includes(curso);
+        const matchGrupo = !grupo || grupoFila.includes(grupo);
+
+        return matchTexto && matchEstado && matchCurso && matchGrupo;
+    });
+}
+
 // Auto ocultar alertas
 setTimeout(() => {
     let alerta = document.getElementById("alerta");
@@ -626,9 +650,7 @@ function cargarGruposFiltro(nombreCurso){
 }
 
 function exportarExcel(){
-
-    let filas = document.querySelectorAll("#contenido-info tbody tr");
-
+    const visibleAlumnos = getVisibleAlumnos();
     let contenido = `
     <meta charset="UTF-8">
     <table border="1">
@@ -648,16 +670,20 @@ function exportarExcel(){
     </tr>
     `;
 
-    filas.forEach(fila => {
-
-        if(fila.style.display === "none") return;
-
+    visibleAlumnos.forEach(alumno => {
         contenido += "<tr>";
-
-        for(let i = 0; i <= 11; i++){
-            contenido += `<td>${fila.children[i].innerText}</td>`;
-        }
-
+        contenido += `<td>${alumno.id_alumno ?? ''}</td>`;
+        contenido += `<td>${alumno.nombre ?? ''}</td>`;
+        contenido += `<td>${alumno.dni ?? ''}</td>`;
+        contenido += `<td>${alumno.telefono ?? ''}</td>`;
+        contenido += `<td>${alumno.telefonopadres ?? ''}</td>`;
+        contenido += `<td>${alumno.telefonoapoderado ?? ''}</td>`;
+        contenido += `<td>${alumno.contacto_pago ?? ''}</td>`;
+        contenido += `<td>${alumno.nombre_curso ?? ''}</td>`;
+        contenido += `<td>${alumno.nombre_grupo ?? ''}</td>`;
+        contenido += `<td>${alumno.fecha_registro ?? ''}</td>`;
+        contenido += `<td>${alumno.fecha_baja ?? ''}</td>`;
+        contenido += `<td>${alumno.estado ?? ''}</td>`;
         contenido += "</tr>";
     });
 
@@ -674,14 +700,28 @@ function exportarExcel(){
 }
 
 function exportarPDF(){
+    const visibleAlumnos = getVisibleAlumnos();
+    const fecha = new Date().toLocaleDateString();
 
-    let filas = document.querySelectorAll("#contenido-info tbody tr");
+    let rowsHtml = visibleAlumnos.map(alumno => `
+        <tr>
+            <td>${alumno.id_alumno ?? ''}</td>
+            <td>${alumno.nombre ?? ''}</td>
+            <td>${alumno.dni ?? ''}</td>
+            <td>${alumno.telefono ?? ''}</td>
+            <td>${alumno.telefonopadres ?? ''}</td>
+            <td>${alumno.telefonoapoderado ?? ''}</td>
+            <td>${alumno.contacto_pago ?? ''}</td>
+            <td>${alumno.nombre_curso ?? ''}</td>
+            <td>${alumno.nombre_grupo ?? ''}</td>
+            <td>${alumno.fecha_registro ?? ''}</td>
+            <td>${alumno.fecha_baja ?? ''}</td>
+            <td>${alumno.estado ?? ''}</td>
+        </tr>
+    `).join('');
 
-    let fecha = new Date().toLocaleDateString();
-
-    let html = `
+    const html = `
     <div style="font-family: Arial;">
-
         <div style="display:flex; align-items:center; gap:10px;">
             <img src="../img/logo-beatcell.png" width="60">
             <div>
@@ -689,11 +729,8 @@ function exportarPDF(){
                 <small>Reporte de Alumnos</small>
             </div>
         </div>
-
         <hr>
-
         <p><strong>Fecha:</strong> ${fecha}</p>
-
         <table border="1" style="width:100%; border-collapse: collapse; font-size:11px;">
             <tr>
                 <th>ID</th>
@@ -709,22 +746,10 @@ function exportarPDF(){
                 <th>Fecha Baja</th>
                 <th>Estado</th>
             </tr>
+            ${rowsHtml}
+        </table>
+    </div>
     `;
-
-    filas.forEach(fila => {
-
-        if(fila.style.display === "none") return;
-
-        html += "<tr>";
-
-        for(let i = 0; i <= 11; i++){
-            html += `<td>${fila.children[i].innerText}</td>`;
-        }
-
-        html += "</tr>";
-    });
-
-    html += "</table></div>";
 
     let opciones = {
         margin: 0.3,

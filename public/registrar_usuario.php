@@ -72,6 +72,7 @@ document.querySelectorAll('.tab-btn').forEach(button => {
   });
 });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <?php
 $content = ob_get_clean();

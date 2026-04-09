@@ -17,7 +17,6 @@ try {
         SELECT p.*, c.nombre_carrera as carrera_nombre
         FROM practicantes p
         LEFT JOIN carreras c ON p.id_carrera = c.id_carrera
-        WHERE p.fecha_baja IS NULL
         ORDER BY p.fecha_registro DESC
     ");
     $practicantes = $stmt->fetchAll();
@@ -33,17 +32,65 @@ try {
     Gestionar Practicantes
   </h2>
 
+  <div class="mb-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+    <div class="flex gap-2 items-center">
+      <button id="btnToggleFiltros" type="button"
+        class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 flex items-center gap-2">
+        <i class="fas fa-filter"></i>
+        Filtros
+      </button>
+      <div class="flex gap-2">
+        <button onclick="exportarExcelPracticantes()"
+          class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2">
+          <i class="fas fa-file-excel"></i>
+          Excel
+        </button>
+        <button onclick="exportarPDFPracticantes()"
+          class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 flex items-center gap-2">
+          <i class="fas fa-file-pdf"></i>
+          PDF
+        </button>
+      </div>
+    </div>
+
+    <div id="panelFiltrosPracticantes" class="hidden bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-full md:w-96 relative">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="font-semibold">Filtros</h3>
+        <button type="button" onclick="toggleFiltrosPracticantes()" class="text-gray-500 hover:text-gray-700">✕</button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Buscar por Nombre o DNI</label>
+          <input id="buscarPracticante" type="text" placeholder="Nombre o DNI"
+            class="w-full border border-gray-300 rounded px-3 py-2" oninput="filtrarPracticantes()">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Estado</label>
+          <select id="filtroEstadoPracticante" class="w-full border border-gray-300 rounded px-3 py-2" onchange="filtrarPracticantes()">
+            <option value="Todos">Todos</option>
+            <option value="Activo">Activo</option>
+            <option value="Baja">Baja</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="overflow-x-auto">
-    <table class="w-full border border-gray-200 rounded-lg">
+    <table id="tablaPracticantes" class="w-full border border-gray-200 rounded-lg">
 
       <thead class="bg-teal-600 text-white text-sm">
         <tr>
           <th class="p-3 text-left">Nombre</th>
           <th class="p-3 text-left">DNI</th>
           <th class="p-3 text-left">Teléfono</th>
+          <th class="p-3 text-left">Teléfono Emergencia</th>
           <th class="p-3 text-left">Carrera</th>
           <th class="p-3 text-left">Horario</th>
           <th class="p-3 text-left">Observación</th>
+          <th class="p-3 text-left">Estado</th>
+          <th class="p-3 text-left">Registro</th>
+          <th class="p-3 text-left">Fecha Baja</th>
           <th class="p-3 text-center">Acciones</th>
         </tr>
       </thead>
@@ -51,21 +98,32 @@ try {
       <tbody>
         <?php if (empty($practicantes)): ?>
           <tr>
-            <td colspan="7" class="p-6 text-center text-gray-500">
+            <td colspan="11" class="p-6 text-center text-gray-500">
               No hay practicantes registrados
             </td>
           </tr>
         <?php else: ?>
           <?php foreach ($practicantes as $p): ?>
-          <tr class="border-t hover:bg-gray-50 text-sm">
+          <?php $estado = $p['fecha_baja'] ? 'Baja' : 'Activo'; ?>
+          <tr class="border-t hover:bg-gray-50 text-sm" data-estado="<?= $estado ?>">
             <td class="p-3 font-semibold text-gray-800"><?= htmlspecialchars($p['nombre']) ?></td>
             <td class="p-3"><?= htmlspecialchars($p['dni'] ?? '-') ?></td>
             <td class="p-3"><?= htmlspecialchars($p['telefono'] ?? '-') ?></td>
+            <td class="p-3"><?= htmlspecialchars($p['telefono_emergencia'] ?? '-') ?></td>
             <td class="p-3"><?= htmlspecialchars($p['carrera_nombre'] ?? '-') ?></td>
             <td class="p-3"><?= htmlspecialchars($p['horario'] ?? '-') ?></td>
             <td class="p-3 text-xs max-w-xs truncate" title="<?= htmlspecialchars($p['observacion'] ?? '') ?>">
               <?= htmlspecialchars($p['observacion']) ? htmlspecialchars(substr($p['observacion'], 0, 30)) . '...' : '-' ?>
             </td>
+            <td class="p-3">
+              <?php if ($estado === 'Activo'): ?>
+                <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-semibold">Activo</span>
+              <?php else: ?>
+                <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-semibold">Baja</span>
+              <?php endif; ?>
+            </td>
+            <td class="p-3"><?= htmlspecialchars($p['fecha_registro'] ?? '-') ?></td>
+            <td class="p-3"><?= htmlspecialchars($p['fecha_baja'] ?? '-') ?></td>
 
             <td class="p-3 text-center flex justify-center gap-2">
               <button 
@@ -242,4 +300,78 @@ document.getElementById('formEditarPracticante').addEventListener('submit', asyn
     alert('Error: ' + error.message);
   }
 });
+
+function filtrarPracticantes() {
+  const filtro = document.getElementById('buscarPracticante').value.toLowerCase();
+  const estado = document.getElementById('filtroEstadoPracticante').value;
+  const filas = document.querySelectorAll('#tablaPracticantes tbody tr');
+
+  filas.forEach(fila => {
+    const nombre = fila.children[0].innerText.toLowerCase();
+    const dni = fila.children[1].innerText.toLowerCase();
+    const filaEstado = fila.dataset.estado;
+
+    const coincideTexto = !filtro || nombre.includes(filtro) || dni.includes(filtro);
+    const coincideEstado = estado === 'Todos' || filaEstado === estado;
+
+    fila.style.display = coincideTexto && coincideEstado ? '' : 'none';
+  });
+}
+
+function exportarExcelPracticantes() {
+  const filas = document.querySelectorAll('#tablaPracticantes tbody tr');
+  let contenido = `\n    <meta charset="UTF-8">\n    <table border="1">\n    <tr>\n        <th>Nombre</th>\n        <th>DNI</th>\n        <th>Teléfono</th>\n        <th>Teléfono Emergencia</th>\n        <th>Carrera</th>\n        <th>Horario</th>\n        <th>Observación</th>\n        <th>Estado</th>\n        <th>Registro</th>\n        <th>Fecha Baja</th>\n    </tr>\n    `;
+
+  filas.forEach(fila => {
+    if (fila.style.display === 'none') return;
+    contenido += '<tr>'; 
+    for (let i = 0; i < 10; i++) {
+      contenido += `<td>${fila.children[i].innerText}</td>`;
+    }
+    contenido += '</tr>';
+  });
+  contenido += '</table>';
+
+  const blob = new Blob(['\ufeff', contenido], {
+    type: 'application/vnd.ms-excel;charset=utf-8;'
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'reporte_practicantes.xls';
+  a.click();
+}
+
+function exportarPDFPracticantes() {
+  const filas = document.querySelectorAll('#tablaPracticantes tbody tr');
+  const fecha = new Date().toLocaleDateString();
+  let contenido = `\n    <h3>Reporte de Practicantes</h3>\n    <p>Fecha: ${fecha}</p>\n    <table border="1" cellpadding="8">\n    <tr style="background-color:#0f766e;color:white;">\n        <th>Nombre</th>\n        <th>DNI</th>\n        <th>Teléfono</th>\n        <th>Teléfono Emergencia</th>\n        <th>Carrera</th>\n        <th>Horario</th>\n        <th>Observación</th>\n        <th>Estado</th>\n        <th>Registro</th>\n        <th>Fecha Baja</th>\n    </tr>\n    `;
+
+  filas.forEach(fila => {
+    if (fila.style.display === 'none') return;
+    contenido += '<tr>';
+    for (let i = 0; i < 10; i++) {
+      contenido += `<td>${fila.children[i].innerText}</td>`;
+    }
+    contenido += '</tr>';
+  });
+  contenido += '</table>';
+
+  const element = document.createElement('div');
+  element.innerHTML = contenido;
+  const opt = {
+    margin: 10,
+    filename: 'reporte_practicantes.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+  };
+  html2pdf().set(opt).from(element).save();
+}
+
+function toggleFiltrosPracticantes() {
+  const panel = document.getElementById('panelFiltrosPracticantes');
+  panel.classList.toggle('hidden');
+}
+
+document.getElementById('btnToggleFiltros').addEventListener('click', toggleFiltrosPracticantes);
 </script>
