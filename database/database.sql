@@ -7,7 +7,7 @@ CREATE DATABASE beatcell_db;
 USE beatcell_db;
 
 -- ======================================
--- TABLA USUARIOS (CON ROLES)
+-- TABLA USUARIOS
 -- ======================================
 
 CREATE TABLE usuarios (
@@ -15,7 +15,12 @@ CREATE TABLE usuarios (
     usuario VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     nombre VARCHAR(100) NOT NULL,
-    rol VARCHAR(50) DEFAULT 'admin'
+
+    rol ENUM(
+        'ADMINISTRADOR',
+        'JEFE',
+        'ASISTENTE'
+    ) DEFAULT 'ASISTENTE'
 );
 
 INSERT INTO usuarios (usuario, password, nombre, rol) VALUES
@@ -30,13 +35,6 @@ CREATE TABLE cursos (
     nombre_curso VARCHAR(100) UNIQUE NOT NULL
 );
 
-INSERT INTO cursos (nombre_curso) VALUES
-('Robótica'),
-('Electrónica'),
-('Reparación de celulares'),
-('Reparación de PC'),
-('Ofimática');
-
 -- ======================================
 -- TABLA GRUPOS
 -- ======================================
@@ -50,7 +48,25 @@ CREATE TABLE grupos (
     hora_inicio TIME,
     hora_fin TIME,
 
-    FOREIGN KEY (id_curso) REFERENCES cursos(id_curso)
+    FOREIGN KEY (id_curso)
+        REFERENCES cursos(id_curso)
+);
+
+-- ======================================
+-- NUEVA TABLA: HORARIOS ESPECIALES
+-- ======================================
+
+CREATE TABLE horarios_especiales (
+    id_horario INT AUTO_INCREMENT PRIMARY KEY,
+
+    id_grupo INT NOT NULL,
+
+    dia_semana VARCHAR(20) NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+
+    FOREIGN KEY (id_grupo)
+        REFERENCES grupos(id_grupo)
 );
 
 -- ======================================
@@ -62,33 +78,42 @@ CREATE TABLE carreras (
     nombre_carrera VARCHAR(100) UNIQUE
 );
 
-INSERT INTO carreras (nombre_carrera) VALUES
-('Desarrollo de Software'),
-('Diseño Gráfico'),
-('Electrónica'),
-('Redes y Comunicaciones'),
-('Mecatrónica');
-
 -- ======================================
 -- TABLA ALUMNOS
 -- ======================================
 
 CREATE TABLE alumnos (
     id_alumno INT AUTO_INCREMENT PRIMARY KEY,
+
     nombre VARCHAR(150) NOT NULL,
     dni VARCHAR(20) UNIQUE NOT NULL,
     telefono VARCHAR(20),
+
     telefonopadres VARCHAR(20),
     telefonoapoderado VARCHAR(20),
 
     contacto_pago VARCHAR(50) DEFAULT 'Alumno',
+
+    edad INT,
+    email VARCHAR(150),
+    direccion TEXT,
+
+    nombre_apoderado VARCHAR(150),
+    dni_apoderado VARCHAR(20),
+    correo_apoderado VARCHAR(150),
+    telefono_apoderado VARCHAR(20),
+
+    notificar_emergencia VARCHAR(50),
+
+    tipo_ciclo VARCHAR(50),
+    medio_captacion VARCHAR(50),
 
     fecha_baja DATE,
     fecha_registro DATE DEFAULT CURRENT_DATE
 );
 
 -- ======================================
--- TABLA MATRICULAS (CLAVE DEL SISTEMA)
+-- TABLA MATRICULAS
 -- ======================================
 
 CREATE TABLE matriculas (
@@ -104,8 +129,11 @@ CREATE TABLE matriculas (
     fecha_matricula DATE DEFAULT CURRENT_DATE,
     estado VARCHAR(50) DEFAULT 'Activo',
 
-    FOREIGN KEY (id_alumno) REFERENCES alumnos(id_alumno),
-    FOREIGN KEY (id_grupo) REFERENCES grupos(id_grupo)
+    FOREIGN KEY (id_alumno)
+        REFERENCES alumnos(id_alumno),
+
+    FOREIGN KEY (id_grupo)
+        REFERENCES grupos(id_grupo)
 );
 
 -- ======================================
@@ -114,19 +142,70 @@ CREATE TABLE matriculas (
 
 CREATE TABLE practicantes (
     id_practicante INT AUTO_INCREMENT PRIMARY KEY,
+
     nombre VARCHAR(150) NOT NULL,
     telefono VARCHAR(20),
     telefono_emergencia VARCHAR(20),
     dni VARCHAR(20),
+
     id_carrera INT,
+
     horario VARCHAR(50),
+
+    edad INT,
+    email VARCHAR(150),
+    direccion TEXT,
+
+    nombre_apoderado VARCHAR(150),
+    dni_apoderado VARCHAR(20),
+    correo_apoderado VARCHAR(150),
+    telefono_apoderado VARCHAR(20),
+
+    notificar_emergencia VARCHAR(50),
+    modalidad_horario VARCHAR(50),
 
     observacion TEXT,
 
     fecha_baja DATE,
     fecha_registro DATE DEFAULT CURRENT_DATE,
 
-    FOREIGN KEY (id_carrera) REFERENCES carreras(id_carrera)
+    FOREIGN KEY (id_carrera)
+        REFERENCES carreras(id_carrera)
+);
+
+-- ======================================
+-- TABLA PROMOCIONES
+-- ======================================
+
+CREATE TABLE promociones (
+    id_promocion INT AUTO_INCREMENT PRIMARY KEY,
+
+    nombre_promocion VARCHAR(100),
+    descripcion TEXT,
+
+    fecha_inicio DATE,
+    fecha_fin DATE,
+
+    activa BOOLEAN DEFAULT TRUE
+);
+
+-- ======================================
+-- TABLA MATRICULAS_PROMOCIONES
+-- ======================================
+
+CREATE TABLE matriculas_promociones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    id_matricula INT NOT NULL,
+    id_promocion INT NOT NULL,
+
+    fecha_asignacion DATE DEFAULT CURRENT_DATE,
+
+    FOREIGN KEY (id_matricula)
+        REFERENCES matriculas(id_matricula),
+
+    FOREIGN KEY (id_promocion)
+        REFERENCES promociones(id_promocion)
 );
 
 -- ======================================
@@ -146,7 +225,8 @@ CREATE TABLE asistencias (
     tareas_asignadas TEXT,
     tareas_terminadas TEXT,
 
-    FOREIGN KEY (id_alumno) REFERENCES alumnos(id_alumno)
+    FOREIGN KEY (id_alumno)
+        REFERENCES alumnos(id_alumno)
 );
 
 -- ======================================
@@ -166,7 +246,8 @@ CREATE TABLE asistencias_practicantes (
     tareas_asignadas TEXT,
     tareas_terminadas TEXT,
 
-    FOREIGN KEY (id_practicante) REFERENCES practicantes(id_practicante)
+    FOREIGN KEY (id_practicante)
+        REFERENCES practicantes(id_practicante)
 );
 
 -- ======================================
@@ -190,7 +271,8 @@ CREATE TABLE planes_pago (
     fecha_creacion DATE DEFAULT CURRENT_DATE,
     estado VARCHAR(50) DEFAULT 'Activo',
 
-    FOREIGN KEY (id_matricula) REFERENCES matriculas(id_matricula)
+    FOREIGN KEY (id_matricula)
+        REFERENCES matriculas(id_matricula)
 );
 
 -- ======================================
@@ -212,7 +294,8 @@ CREATE TABLE cuotas (
     dias_gracia INT DEFAULT 0,
     estado VARCHAR(50) DEFAULT 'Pendiente',
 
-    FOREIGN KEY (id_plan) REFERENCES planes_pago(id_plan)
+    FOREIGN KEY (id_plan)
+        REFERENCES planes_pago(id_plan)
 );
 
 -- ======================================
@@ -235,7 +318,13 @@ CREATE TABLE movimientos_financieros (
     numero_boleta VARCHAR(50),
     ruta_pdf TEXT,
 
-    FOREIGN KEY (id_alumno) REFERENCES alumnos(id_alumno),
-    FOREIGN KEY (id_matricula) REFERENCES matriculas(id_matricula),
-    FOREIGN KEY (id_cuota) REFERENCES cuotas(id_cuota)
+    FOREIGN KEY (id_alumno)
+        REFERENCES alumnos(id_alumno),
+
+    FOREIGN KEY (id_matricula)
+        REFERENCES matriculas(id_matricula),
+
+    FOREIGN KEY (id_cuota)
+        REFERENCES cuotas(id_cuota)
 );
+
