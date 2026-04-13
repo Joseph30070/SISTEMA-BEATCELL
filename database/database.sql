@@ -35,6 +35,14 @@ CREATE TABLE cursos (
     nombre_curso VARCHAR(100) UNIQUE NOT NULL
 );
 
+INSERT INTO cursos (nombre_curso) VALUES
+('Robótica'),
+('Electrónica'),
+('Reparación de celulares'),
+('Reparación de PC'),
+('Ofimática');
+
+
 -- ======================================
 -- TABLA GRUPOS
 -- ======================================
@@ -78,6 +86,14 @@ CREATE TABLE carreras (
     nombre_carrera VARCHAR(100) UNIQUE
 );
 
+INSERT INTO carreras (nombre_carrera) VALUES
+('Desarrollo de Software'),
+('Diseño Gráfico'),
+('Electrónica'),
+('Redes y Comunicaciones'),
+('Mecatrónica');
+
+
 -- ======================================
 -- TABLA ALUMNOS
 -- ======================================
@@ -101,7 +117,6 @@ CREATE TABLE alumnos (
     nombre_apoderado VARCHAR(150),
     dni_apoderado VARCHAR(20),
     correo_apoderado VARCHAR(150),
-    telefono_apoderado VARCHAR(20),
 
     notificar_emergencia VARCHAR(50),
 

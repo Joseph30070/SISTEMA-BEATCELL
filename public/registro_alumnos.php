@@ -34,24 +34,6 @@ ORDER BY a.id_alumno DESC
 
 $alumnos = $stmt->fetchAll();
 
-// =========================
-// OBTENER ASISTENCIAS
-// =========================
-$stmt = $pdo->query("
-SELECT 
-    asl.id_asistencia,
-    asl.id_alumno,
-    a.nombre,
-    asl.fecha,
-    asl.hora_entrada,
-    asl.hora_salida
-FROM asistencias asl
-INNER JOIN alumnos a ON a.id_alumno = asl.id_alumno
-ORDER BY asl.fecha DESC
-LIMIT 50
-");
-
-$asistencias = $stmt->fetchAll();
 
 $title  = "Registro de Alumno";
 $active = "registro";
@@ -102,7 +84,9 @@ ob_start();
 
 <form action="../process/process_alumno.php" method="POST" class="space-y-8" id="formAlumno">
 
-<!-- DATOS -->
+<!-- ===================================================== -->
+<!-- 1. DATOS DEL ALUMNO -->
+<!-- ===================================================== -->
 <section class="bg-white rounded-2xl shadow-md p-8 border border-gray-100">
 
     <h3 class="text-xl font-semibold mb-6 text-gray-800 flex items-center gap-2">
@@ -114,46 +98,103 @@ ob_start();
 
         <div class="md:col-span-2">
             <label class="block font-semibold mb-1">Nombre Completo *</label>
-            <input name="nombre" required  placeholder="Ej: Pedro Chavez" class="w-full border rounded-lg px-3 py-2">
+            <input name="nombre" required placeholder="Ej: Juan Pérez Gómez" class="w-full border rounded-lg px-3 py-2">
         </div>
 
         <div>
             <label class="block font-semibold mb-1">DNI *</label>
-            <input name="dni" type="text" maxlength="8" pattern="[0-9]{8}" inputmode="numeric" required placeholder="Ej: 12345678" class="w-full border rounded-lg px-3 py-2" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-            <small class="text-gray-500 text-xs">
-                Debe contener exactamente 8 números
-            </small>
+            <input name="dni" type="text" maxlength="8" pattern="[0-9]{8}" required
+                placeholder="Ej: 12345678"
+                class="w-full border rounded-lg px-3 py-2"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         </div>
 
         <div>
-            <label class="block font-semibold mb-1">Teléfono</label>
-            <input name="telefono" type="text" maxlength="9" pattern="[0-9]{9}" inputmode="numeric" placeholder="Ej: 987654321" class="w-full border rounded-lg px-3 py-2" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-            <small class="text-gray-500 text-xs">
-                Debe contener exactamente 9 números
-            </small>
+            <label class="block font-semibold mb-1">Edad</label>
+            <input name="edad" type="number" min="1" max="100"
+                placeholder="Ej: 15"
+                class="w-full border rounded-lg px-3 py-2">
         </div>
 
         <div>
-            <label class="block font-semibold mb-1">Teléfono Padres</label>
-            <input name="telefonopadres" type="text" maxlength="9" pattern="[0-9]{9}" inputmode="numeric" placeholder="Ej: 987654321" class="w-full border rounded-lg px-3 py-2" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-            <small class="text-gray-500 text-xs">
-                Debe contener exactamente 9 números
-            </small>
+            <label class="block font-semibold mb-1">Correo Electrónico</label>
+            <input name="email" type="email"
+                placeholder="Ej: alumno@gmail.com"
+                class="w-full border rounded-lg px-3 py-2">
+        </div>
+
+        <div class="md:col-span-2">
+            <label class="block font-semibold mb-1">Dirección</label>
+            <input name="direccion"
+                placeholder="Ej: Av. Perú 123 - Comas"
+                class="w-full border rounded-lg px-3 py-2">
         </div>
 
         <div>
-            <label class="block font-semibold mb-1">Teléfono Apoderado</label>
-            <input name="telefonoapoderado" type="text" maxlength="9" pattern="[0-9]{9}" inputmode="numeric" placeholder="Ej: 987654321" class="w-full border rounded-lg px-3 py-2" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-            <small class="text-gray-500 text-xs">
-                Debe contener exactamente 9 números
-            </small>
+            <label class="block font-semibold mb-1">Teléfono del Alumno</label>
+            <input name="telefono" maxlength="9"
+                placeholder="Ej: 987654321"
+                class="w-full border rounded-lg px-3 py-2"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         </div>
+
+        <div>
+            <label class="block font-semibold mb-1">Teléfono del Padre / Madre</label>
+            <input name="telefonopadres" maxlength="9"
+                placeholder="Ej: 912345678"
+                class="w-full border rounded-lg px-3 py-2"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+
+        
 
         <div>
             <label class="block font-semibold mb-1">Contacto de Pago</label>
-            <select name="contacto_pago" class="w-full border rounded-lg px-3 py-2">
+            <select name="contacto_pago" class="w-full border rounded-lg px-3 py-2" required>
                 <option value="Alumno">Alumno</option>
                 <option value="Padre">Padre</option>
+                <option value="Apoderado">Apoderado</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block font-semibold mb-1">Tipo de Ciclo</label>
+            <select name="tipo_ciclo" class="w-full border rounded-lg px-3 py-2" required>
+                <option value="">Seleccione tipo de ciclo</option>
+
+                <option value="Normal">
+                    Normal (4 meses)
+                </option>
+
+                <option value="Acelerado">
+                    Acelerado (2 meses)
+                </option>
+
+                <option value="Especialización">
+                    Especialización (1 semana / 1 mes)
+                </option>
+
+            </select>
+        </div>
+
+        <div>
+            <label class="block font-semibold mb-1">Medio de Captación</label>
+            <select name="medio_captacion" class="w-full border rounded-lg px-3 py-2">
+                <option value="">¿Cómo conoció la academia?</option>
+                <option value="Facebook">Facebook</option>
+                <option value="Instagram">Instagram</option>
+                <option value="TikTok">TikTok</option>
+                <option value="Recomendación">Recomendación</option>
+                <option value="Otro">Otro</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block font-semibold mb-1">Notificar en Emergencia</label>
+            <select name="notificar_emergencia" class="w-full border rounded-lg px-3 py-2">
+                <option value="">Seleccione responsable</option>
+                <option value="Padre">Padre</option>
+                <option value="Madre">Madre</option>
                 <option value="Apoderado">Apoderado</option>
             </select>
         </div>
@@ -162,7 +203,56 @@ ob_start();
 
 </section>
 
-<!-- ASIGNACIÓN -->
+<!-- ===================================================== -->
+<!-- 2. DATOS DEL REPRESENTANTE / APODERADO -->
+<!-- ===================================================== -->
+<section class="bg-blue-50 rounded-2xl shadow-md p-8 border border-blue-100">
+
+    <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+        <i class="fas fa-user-shield text-blue-600"></i>
+        Datos del Representante / Apoderado
+    </h3>
+
+    <div class="grid md:grid-cols-3 gap-5">
+
+        <div>
+            <label class="block font-semibold mb-1">Nombre del Apoderado</label>
+            <input name="nombre_apoderado"
+                placeholder="Ej: María López Torres"
+                class="w-full border rounded-lg px-3 py-2">
+        </div>
+
+        <div>
+            <label class="block font-semibold mb-1">DNI del Apoderado</label>
+            <input name="dni_apoderado" maxlength="8"
+                placeholder="Ej: 87654321"
+                class="w-full border rounded-lg px-3 py-2"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+
+        <div>
+            <label class="block font-semibold mb-1">Correo del Apoderado</label>
+            <input name="correo_apoderado" type="email"
+                placeholder="Ej: apoderado@gmail.com"
+                class="w-full border rounded-lg px-3 py-2">
+        </div>
+
+        <!-- IMPORTANTE: usamos telefonoapoderado existente -->
+        <div>
+            <label class="block font-semibold mb-1">Teléfono del Apoderado</label>
+            <input name="telefonoapoderado" maxlength="9"
+                placeholder="Ej: 998877665"
+                class="w-full border rounded-lg px-3 py-2"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ===================================================== -->
+<!-- 3. ASIGNACIÓN ACADÉMICA -->
+<!-- ===================================================== -->
 <section class="bg-purple-50 rounded-2xl shadow-md p-8 border border-purple-100">
 
     <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
@@ -183,6 +273,7 @@ ob_start();
                         <?= htmlspecialchars($c['nombre_curso']) ?>
                     </option>
                 <?php endforeach; ?>
+
             </select>
         </div>
 
@@ -201,6 +292,10 @@ ob_start();
 
     </div>
 
+    <p class="text-sm text-gray-500 mt-4">
+        Nota: Un alumno puede matricularse en 2 o más cursos. Este formulario registra la primera matrícula.
+    </p>
+
 </section>
 
 <div class="flex justify-end gap-3">
@@ -211,228 +306,218 @@ ob_start();
 </form>
 
 </div>
+
+
+
 <!-- ========================= -->
-<!-- TAB INFO -->
+<!-- TAB INFO ACTUALIZADO -->
 <!-- ========================= -->
 <div id="contenido-info" class="tab-content hidden">
 
-<div class="flex justify-between items-center mb-4">
+    <!-- HEADER -->
+    <div class="flex justify-between items-center mb-4">
 
-    <h3 class="text-xl font-semibold">Listado de Alumnos</h3>
+        <h3 class="text-xl font-semibold">
+            Listado de Alumnos
+        </h3>
 
-    <div class="flex gap-2">
+        <div class="flex gap-2">
 
-        <!-- EXPORTAR EXCEL -->
-        <button onclick="exportarExcel()"
-            class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 flex items-center gap-2">
-            <i class="fas fa-file-excel"></i>
-            Excel
-        </button>
-
-        <!-- EXPORTAR PDF -->
-        <button onclick="exportarPDF()"
-            class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 flex items-center gap-2">
-            <i class="fas fa-file-pdf"></i>
-            PDF
-        </button>
-
-        <!-- FILTRO -->
-        <div class="relative">
-
+            <!-- BOTÓN FILTRO -->
             <button onclick="toggleFiltro()"
-                class="bg-gray-200 px-3 py-2 rounded hover:bg-gray-300 flex items-center gap-2">
+                class="bg-gray-600 text-white px-3 py-2 rounded hover:bg-gray-700 flex items-center gap-2">
                 <i class="fas fa-filter"></i>
-                Filtros
+                Filtro
             </button>
 
-            <!-- PANEL -->
-            <div id="panelFiltro"
-                class="hidden absolute right-0 mt-2 bg-white border rounded shadow-lg p-4 w-72 z-50 space-y-3">
+            <!-- EXPORT EXCEL -->
+            <button onclick="exportarExcel()"
+                class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 flex items-center gap-2">
+                <i class="fas fa-file-excel"></i>
+                Excel
+            </button>
 
-                <h4 class="font-semibold text-gray-700">Filtros</h4>
-
-                <!-- BUSCAR -->
-                <div>
-                    <label class="text-sm">Buscar</label>
-                    <input type="text" id="buscar"
-                        placeholder="Nombre o DNI"
-                        class="w-full border px-2 py-1 rounded">
-                </div>
-
-                <!-- ESTADO -->
-                <div>
-                    <label class="text-sm">Estado</label>
-                    <select id="filtroEstado" class="w-full border px-2 py-1 rounded">
-                        <option value="">Todos</option>
-                        <option value="Activo">Activo</option>
-                        <option value="Baja">Baja</option>
-                    </select>
-                </div>
-
-                <!-- CURSO -->
-                <div>
-                    <label class="text-sm">Curso</label>
-                    <select id="filtroCurso"
-                        class="w-full border px-2 py-1 rounded"
-                        onchange="cargarGruposFiltro(this.value)">
-
-                        <option value="">Todos</option>
-
-                        <?php foreach($cursos as $c): ?>
-                            <option value="<?= htmlspecialchars($c['nombre_curso']) ?>">
-                                <?= htmlspecialchars($c['nombre_curso']) ?>
-                            </option>
-                        <?php endforeach; ?>
-
-                    </select>
-                </div>
-
-                <!-- GRUPO -->
-                <div>
-                    <label class="text-sm">Grupo</label>
-                    <select id="filtroGrupo" class="w-full border px-2 py-1 rounded">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-
-                <!-- BOTONES -->
-                <div class="flex gap-2">
-                    <button onclick="aplicarFiltro()"
-                        class="flex-1 bg-teal-600 text-white py-1 rounded">
-                        Aplicar
-                    </button>
-
-                    <button onclick="limpiarFiltro()"
-                        class="flex-1 bg-gray-300 py-1 rounded">
-                        Limpiar
-                    </button>
-                </div>
-
-            </div>
+            <!-- EXPORT PDF -->
+            <button onclick="exportarPDF()"
+                class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 flex items-center gap-2">
+                <i class="fas fa-file-pdf"></i>
+                PDF
+            </button>
 
         </div>
 
     </div>
 
-</div>
+    <!-- ========================= -->
+    <!-- PANEL FILTRO -->
+    <!-- ========================= -->
+    <div id="panelFiltro"
+         class="hidden absolute right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-80 z-50">
 
-<table class="w-full border border-gray-200">
+        <h4 class="font-semibold mb-3 text-gray-700">
+            Filtros
+        </h4>
 
-    <thead class="bg-teal-600 text-white">
-    <tr>
-        <th class="p-3">ID</th>
-        <th class="p-3">Nombre</th>
-        <th class="p-3">DNI</th>
-        <th class="p-3">Teléfono</th>
-        <th class="p-3">Padres</th>
-        <th class="p-3">Apoderado</th>
-        <th class="p-3">Contacto Pago</th>
-        <th class="p-3">Curso</th>
-        <th class="p-3">Grupo</th>
-        <th class="p-3">Registro</th>
-        <th class="p-3">Fecha Baja</th>
-        <th class="p-3">Estado</th>
-        <th class="p-3">Acciones</th>
-    </tr>
-    </thead>
-
-    <tbody>
-
-    <?php foreach($alumnos as $a): ?>
-    <tr class="border-t hover:bg-gray-50">
-
-        <td class="p-2"><?= $a['id_alumno'] ?></td>
-
-        <td class="p-2 font-semibold text-gray-800">
-            <?= htmlspecialchars($a['nombre']) ?>
-        </td>
-
-        <td class="p-2"><?= $a['dni'] ?></td>
-
-        <!-- TELÉFONO PRINCIPAL -->
-        <td class="p-2"><?= $a['telefono'] ?? '-' ?></td>
-
-        <!-- PADRES -->
-        <td class="p-2"><?= $a['telefonopadres'] ?? '-' ?></td>
-
-        <!-- APODERADO -->
-        <td class="p-2"><?= $a['telefonoapoderado'] ?? '-' ?></td>
-
-        <!-- CONTACTO PAGO -->
-        <td class="p-2">
-            <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">
-                <?= $a['contacto_pago'] ?>
-            </span>
-        </td>
-
-        <!-- CURSO -->
-        <td class="p-2"><?= $a['nombre_curso'] ?? '-' ?></td>
-
-        <!-- GRUPO -->
-        <td class="p-2"><?= $a['nombre_grupo'] ?? '-' ?></td>
-
-        <!-- FECHA REGISTRO -->
-        <td class="p-2"><?= $a['fecha_registro'] ?></td>
-
-        <!-- FECHA BAJA -->
-        <td class="p-2">
-            <?php if($a['fecha_baja']): ?>
-                <span class="text-red-600 font-semibold">
-                    <?= $a['fecha_baja'] ?>
-                </span>
-            <?php else: ?>
-                <span class="text-gray-400">
-                    —
-                </span>
-            <?php endif; ?>
-        </td>
+        <!-- BUSCAR -->
+        <input type="text"
+               id="buscar"
+               placeholder="Nombre o DNI"
+               class="w-full border rounded px-3 py-2 mb-2">
 
         <!-- ESTADO -->
-        <td class="p-2">
-            <?php if($a['estado'] == 'Activo'): ?>
-                <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-semibold">
-                    Activo
-                </span>
-            <?php else: ?>
-                <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-semibold">
-                    Baja
-                </span>
-            <?php endif; ?>
-        </td>
+        <select id="filtroEstado"
+                class="w-full border rounded px-3 py-2 mb-2">
 
-        <!-- ACCIONES -->
-        <td class="p-2 flex gap-2">
+            <option value="">Todos</option>
+            <option value="Activo">Activo</option>
+            <option value="Baja">Baja</option>
 
-            <!-- EDITAR -->
-            <a href="editar_alumno.php?id=<?= $a['id_alumno'] ?>"
-            class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">
-            Editar
-            </a>
+        </select>
 
-            <?php if($a['estado'] == 'Activo'): ?>
-                <a href="../process/process_baja_alumno.php?id=<?= $a['id_alumno'] ?>"
-                onclick="return confirm('¿Dar de baja a este alumno?')"
-                class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">
-                Baja
-                </a>
-            <?php else: ?>
-                <a href="../process/process_reactivar_alumno.php?id=<?= $a['id_alumno'] ?>"
-                onclick="return confirm('¿Reactivar alumno?')"
-                class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">
-                Reactivar
-                </a>
-            <?php endif; ?>
+        <!-- CURSO -->
+        <select id="filtroCurso"
+                onchange="cargarGruposFiltro(this.value)"
+                class="w-full border rounded px-3 py-2 mb-2">
 
-        </td>
+            <option value="">Todos</option>
 
-    </tr>
-    <?php endforeach; ?>
+            <?php foreach($cursos as $c): ?>
+                <option>
+                    <?= htmlspecialchars($c['nombre_curso']) ?>
+                </option>
+            <?php endforeach; ?>
 
-    </tbody>
+        </select>
 
-</table>
+        <!-- GRUPO -->
+        <select id="filtroGrupo"
+                class="w-full border rounded px-3 py-2 mb-3">
+
+            <option value="">Todos</option>
+
+        </select>
+
+        <!-- BOTONES -->
+        <div class="flex gap-2">
+
+            <button onclick="aplicarFiltro()"
+                class="bg-teal-600 text-white px-3 py-2 rounded w-full">
+                Aplicar
+            </button>
+
+            <button onclick="limpiarFiltro()"
+                class="bg-gray-400 text-white px-3 py-2 rounded w-full">
+                Limpiar
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!-- TABLA -->
+    <!-- ========================= -->
+    <div class="overflow-auto max-h-[500px] border border-gray-200 rounded">
+
+        <table class="min-w-[1800px] w-full border border-gray-200">
+
+            <thead class="bg-teal-600 text-white sticky top-0 z-10">
+                <tr>
+                    <th class="p-3">ID</th>
+                    <th class="p-3">Nombre</th>
+                    <th class="p-3">DNI</th>
+                    <th class="p-3">Edad</th>
+                    <th class="p-3">Teléfono</th>
+                    <th class="p-3">Padres</th>
+                    <th class="p-3">Apoderado</th>
+                    <th class="p-3">Email</th>
+                    <th class="p-3">Dirección</th>
+                    <th class="p-3">Nombre Apoderado</th>
+                    <th class="p-3">DNI Apoderado</th>
+                    <th class="p-3">Correo Apoderado</th>
+                    <th class="p-3">Contacto Pago</th>
+                    <th class="p-3">Emergencia</th>
+                    <th class="p-3">Ciclo</th>
+                    <th class="p-3">Captación</th>
+                    <th class="p-3">Curso</th>
+                    <th class="p-3">Grupo</th>
+                    <th class="p-3">Registro</th>
+                    <th class="p-3">Fecha Baja</th>
+                    <th class="p-3">Estado</th>
+                    <th class="p-3">Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            <?php foreach($alumnos as $a): ?>
+                <tr class="border-t hover:bg-gray-50">
+
+                    <td class="p-2"><?= $a['id_alumno'] ?></td>
+                    <td class="p-2 font-semibold">
+                        <?= htmlspecialchars($a['nombre']) ?>
+                    </td>
+                    <td class="p-2"><?= $a['dni'] ?></td>
+                    <td class="p-2"><?= $a['edad'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['telefono'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['telefonopadres'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['telefonoapoderado'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['email'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['direccion'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['nombre_apoderado'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['dni_apoderado'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['correo_apoderado'] ?? '-' ?></td>
+
+                    <td class="p-2"><?= $a['contacto_pago'] ?></td>
+                    <td class="p-2"><?= $a['notificar_emergencia'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['tipo_ciclo'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['medio_captacion'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['nombre_curso'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['nombre_grupo'] ?? '-' ?></td>
+                    <td class="p-2"><?= $a['fecha_registro'] ?></td>
+
+                    <td class="p-2">
+                        <?= $a['fecha_baja'] ?? '—' ?>
+                    </td>
+
+                    <td class="p-2">
+                        <?= $a['estado'] ?>
+                    </td>
+
+                    <td class="p-2 flex gap-2">
+
+                        <a href="editar_alumno.php?id=<?= $a['id_alumno'] ?>"
+                           class="bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                           Editar
+                        </a>
+
+                        <?php if($a['estado'] == 'Activo'): ?>
+                            <a href="../process/process_baja_alumno.php?id=<?= $a['id_alumno'] ?>"
+                               class="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                               Baja
+                            </a>
+                        <?php else: ?>
+                            <a href="../process/process_reactivar_alumno.php?id=<?= $a['id_alumno'] ?>"
+                               class="bg-green-500 text-white px-3 py-1 rounded text-sm">
+                               Reactivar
+                            </a>
+                        <?php endif; ?>
+
+                    </td>
+
+                </tr>
+            <?php endforeach; ?>
+
+            </tbody>
+
+        </table>
+
+    </div>
 
 </div>
+
+
+
 
 </div>
 
@@ -544,8 +629,15 @@ setTimeout(() => {
 
 //funcion para filtros
 function toggleFiltro(){
-    document.getElementById('panelFiltro').classList.toggle('hidden');
+
+    let panel = document.getElementById('panelFiltro');
+
+    if(panel){
+        panel.classList.toggle('hidden');
+    }
+
 }
+
 
 function aplicarFiltro(){
 
@@ -560,24 +652,39 @@ function aplicarFiltro(){
 
         let nombre = fila.children[1].innerText.toLowerCase();
         let dni = fila.children[2].innerText.toLowerCase();
-        let cursoFila = fila.children[7].innerText.toLowerCase();
-        let grupoFila = fila.children[8].innerText.toLowerCase();
-        let estadoFila = fila.children[11].innerText.trim();
 
-        let matchTexto = nombre.includes(texto) || dni.includes(texto);
-        let matchEstado = estado === "" || estadoFila === estado;
-        let matchCurso = curso === "" || cursoFila.includes(curso);
-        let matchGrupo = grupo === "" || grupoFila.includes(grupo);
+        let email = fila.children[7].innerText.toLowerCase();
+        let direccion = fila.children[8].innerText.toLowerCase();
 
-        if(matchTexto && matchEstado && matchCurso && matchGrupo){
-            fila.style.display = "";
-        } else {
-            fila.style.display = "none";
-        }
+        let cursoFila = fila.children[16].innerText.toLowerCase();
+        let grupoFila = fila.children[17].innerText.toLowerCase();
+
+        let estadoFila = fila.children[20].innerText.trim();
+
+        let matchTexto =
+            nombre.includes(texto) ||
+            dni.includes(texto) ||
+            email.includes(texto) ||
+            direccion.includes(texto);
+
+        let matchEstado =
+            estado === "" || estadoFila === estado;
+
+        let matchCurso =
+            curso === "" || cursoFila.includes(curso);
+
+        let matchGrupo =
+            grupo === "" || grupoFila.includes(grupo);
+
+        fila.style.display =
+            (matchTexto && matchEstado && matchCurso && matchGrupo)
+            ? "" : "none";
 
     });
 
 }
+
+
 
 function limpiarFiltro(){
 
@@ -650,18 +757,29 @@ function cargarGruposFiltro(nombreCurso){
 }
 
 function exportarExcel(){
+
     const visibleAlumnos = getVisibleAlumnos();
+
     let contenido = `
     <meta charset="UTF-8">
     <table border="1">
-    <tr>
+    <tr style="background:#9b00ff; color:white;">
         <th>ID</th>
         <th>Nombre</th>
         <th>DNI</th>
+        <th>Edad</th>
         <th>Teléfono</th>
         <th>Padres</th>
-        <th>Apoderado</th>
+        <th>Apoderado Tel</th>
+        <th>Email</th>
+        <th>Dirección</th>
+        <th>Apoderado Nombre</th>
+        <th>DNI Apoderado</th>
+        <th>Correo Apoderado</th>
         <th>Contacto Pago</th>
+        <th>Emergencia</th>
+        <th>Ciclo</th>
+        <th>Captación</th>
         <th>Curso</th>
         <th>Grupo</th>
         <th>Registro</th>
@@ -670,96 +788,151 @@ function exportarExcel(){
     </tr>
     `;
 
-    visibleAlumnos.forEach(alumno => {
-        contenido += "<tr>";
-        contenido += `<td>${alumno.id_alumno ?? ''}</td>`;
-        contenido += `<td>${alumno.nombre ?? ''}</td>`;
-        contenido += `<td>${alumno.dni ?? ''}</td>`;
-        contenido += `<td>${alumno.telefono ?? ''}</td>`;
-        contenido += `<td>${alumno.telefonopadres ?? ''}</td>`;
-        contenido += `<td>${alumno.telefonoapoderado ?? ''}</td>`;
-        contenido += `<td>${alumno.contacto_pago ?? ''}</td>`;
-        contenido += `<td>${alumno.nombre_curso ?? ''}</td>`;
-        contenido += `<td>${alumno.nombre_grupo ?? ''}</td>`;
-        contenido += `<td>${alumno.fecha_registro ?? ''}</td>`;
-        contenido += `<td>${alumno.fecha_baja ?? ''}</td>`;
-        contenido += `<td>${alumno.estado ?? ''}</td>`;
-        contenido += "</tr>";
+    visibleAlumnos.forEach(a => {
+        contenido += `
+        <tr>
+            <td>${a.id_alumno ?? ''}</td>
+            <td>${a.nombre ?? ''}</td>
+            <td>${a.dni ?? ''}</td>
+            <td>${a.edad ?? ''}</td>
+            <td>${a.telefono ?? ''}</td>
+            <td>${a.telefonopadres ?? ''}</td>
+            <td>${a.telefonoapoderado ?? ''}</td>
+            <td>${a.email ?? ''}</td>
+            <td>${a.direccion ?? ''}</td>
+            <td>${a.nombre_apoderado ?? ''}</td>
+            <td>${a.dni_apoderado ?? ''}</td>
+            <td>${a.correo_apoderado ?? ''}</td>
+            <td>${a.contacto_pago ?? ''}</td>
+            <td>${a.notificar_emergencia ?? ''}</td>
+            <td>${a.tipo_ciclo ?? ''}</td>
+            <td>${a.medio_captacion ?? ''}</td>
+            <td>${a.nombre_curso ?? ''}</td>
+            <td>${a.nombre_grupo ?? ''}</td>
+            <td>${a.fecha_registro ?? ''}</td>
+            <td>${a.fecha_baja ?? ''}</td>
+            <td>${a.estado ?? ''}</td>
+        </tr>`;
     });
 
     contenido += "</table>";
 
-    let blob = new Blob(["\ufeff", contenido], {
+    const blob = new Blob(["\ufeff", contenido], {
         type: "application/vnd.ms-excel;charset=utf-8;"
     });
 
-    let a = document.createElement("a");
+    const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "reporte_alumnos.xls";
     a.click();
 }
 
+
+
+
 function exportarPDF(){
+
     const visibleAlumnos = getVisibleAlumnos();
     const fecha = new Date().toLocaleDateString();
 
-    let rowsHtml = visibleAlumnos.map(alumno => `
+    let rowsHtml = visibleAlumnos.map(a => `
         <tr>
-            <td>${alumno.id_alumno ?? ''}</td>
-            <td>${alumno.nombre ?? ''}</td>
-            <td>${alumno.dni ?? ''}</td>
-            <td>${alumno.telefono ?? ''}</td>
-            <td>${alumno.telefonopadres ?? ''}</td>
-            <td>${alumno.telefonoapoderado ?? ''}</td>
-            <td>${alumno.contacto_pago ?? ''}</td>
-            <td>${alumno.nombre_curso ?? ''}</td>
-            <td>${alumno.nombre_grupo ?? ''}</td>
-            <td>${alumno.fecha_registro ?? ''}</td>
-            <td>${alumno.fecha_baja ?? ''}</td>
-            <td>${alumno.estado ?? ''}</td>
+            <td>${a.id_alumno ?? ''}</td>
+            <td>${a.nombre ?? ''}</td>
+            <td>${a.dni ?? ''}</td>
+            <td>${a.edad ?? ''}</td>
+            <td>${a.telefono ?? ''}</td>
+            <td>${a.telefonopadres ?? ''}</td>
+            <td>${a.telefonoapoderado ?? ''}</td>
+            <td>${a.email ?? ''}</td>
+            <td>${a.direccion ?? ''}</td>
+            <td>${a.nombre_apoderado ?? ''}</td>
+            <td>${a.dni_apoderado ?? ''}</td>
+            <td>${a.correo_apoderado ?? ''}</td>
+            <td>${a.contacto_pago ?? ''}</td>
+            <td>${a.notificar_emergencia ?? ''}</td>
+            <td>${a.tipo_ciclo ?? ''}</td>
+            <td>${a.medio_captacion ?? ''}</td>
+            <td>${a.nombre_curso ?? ''}</td>
+            <td>${a.nombre_grupo ?? ''}</td>
+            <td>${a.fecha_registro ?? ''}</td>
+            <td>${a.fecha_baja ?? ''}</td>
+            <td>${a.estado ?? ''}</td>
         </tr>
     `).join('');
 
     const html = `
-    <div style="font-family: Arial;">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <img src="../img/logo-beatcell.png" width="60">
+    <div style="font-family: Arial; padding:20px;">
+
+        <!-- HEADER -->
+        <div style="display:flex; align-items:center; gap:15px; border-bottom:3px solid #9b00ff; padding-bottom:10px;">
+            <img src="../img/logo-beatcell.png" width="70">
+
             <div>
-                <h2 style="margin:0;">BEATCELL</h2>
-                <small>Reporte de Alumnos</small>
+                <h2 style="margin:0; color:#9b00ff;">BEATCELL</h2>
+                <small style="color:#555;">Sistema de Gestión de Alumnos</small>
             </div>
         </div>
-        <hr>
-        <p><strong>Fecha:</strong> ${fecha}</p>
-        <table border="1" style="width:100%; border-collapse: collapse; font-size:11px;">
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>DNI</th>
-                <th>Teléfono</th>
-                <th>Padres</th>
-                <th>Apoderado</th>
-                <th>Contacto</th>
-                <th>Curso</th>
-                <th>Grupo</th>
-                <th>Registro</th>
-                <th>Fecha Baja</th>
-                <th>Estado</th>
-            </tr>
-            ${rowsHtml}
+
+        <p style="margin-top:10px;"><strong>Fecha:</strong> ${fecha}</p>
+
+        <!-- TABLA -->
+        <table border="1"
+               style="width:100%;
+               border-collapse: collapse;
+               font-size:10px;
+               margin-top:10px;">
+
+            <thead>
+                <tr style="background:#0d1b2a; color:white;">
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>DNI</th>
+                    <th>Edad</th>
+                    <th>Teléfono</th>
+                    <th>Padres</th>
+                    <th>Apoderado</th>
+                    <th>Email</th>
+                    <th>Dirección</th>
+                    <th>Apoderado</th>
+                    <th>DNI Apod.</th>
+                    <th>Correo Apod.</th>
+                    <th>Pago</th>
+                    <th>Emerg.</th>
+                    <th>Ciclo</th>
+                    <th>Captación</th>
+                    <th>Curso</th>
+                    <th>Grupo</th>
+                    <th>Registro</th>
+                    <th>Baja</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${rowsHtml}
+            </tbody>
+
         </table>
+
+        <!-- FOOTER -->
+        <p style="margin-top:15px; font-size:11px; color:#9b00ff;">
+            Reporte generado automáticamente por BEATCELL
+        </p>
+
     </div>
     `;
 
-    let opciones = {
+    html2pdf().set({
         margin: 0.3,
         filename: 'reporte_alumnos.pdf',
         html2canvas: { scale: 2 },
         jsPDF: { orientation: 'landscape' }
-    };
-
-    html2pdf().set(opciones).from(html).save();
+    }).from(html).save();
 }
+
+
+
 
 </script>
 
