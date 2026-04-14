@@ -486,10 +486,12 @@ ob_start();
 
                     <td class="p-2 flex gap-2">
 
-                        <a href="editar_alumno.php?id=<?= $a['id_alumno'] ?>"
-                           class="bg-blue-500 text-white px-3 py-1 rounded text-sm">
-                           Editar
-                        </a>
+                        <button
+                            onclick="abrirEditarAlumno(<?= $a['id_alumno'] ?>)"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">
+                            Editar
+                        </button>
+
 
                         <?php if($a['estado'] == 'Activo'): ?>
                             <a href="../process/process_baja_alumno.php?id=<?= $a['id_alumno'] ?>"
@@ -529,13 +531,19 @@ ob_start();
 <script>
 
 // Función para cargar grupos según el curso seleccionado
-function cargarGrupos(idCurso) {
-    const selectGrupo = document.getElementById('id_grupo');
-    const inputHorario = document.getElementById('horario');
+function cargarGrupos(idCurso, groupSelectId = 'id_grupo', horarioInputId = 'horario') {
+    const selectGrupo = document.getElementById(groupSelectId);
+    const inputHorario = document.getElementById(horarioInputId);
+
+    if (!selectGrupo) {
+        return;
+    }
 
     // Limpiar selects
     selectGrupo.innerHTML = '<option value="">-- Cargando... --</option>';
-    inputHorario.value = '';
+    if (inputHorario) {
+        inputHorario.value = '';
+    }
 
     if (!idCurso) {
         selectGrupo.innerHTML = '<option value="">-- Primero seleccione curso --</option>';
@@ -546,9 +554,9 @@ function cargarGrupos(idCurso) {
     fetch(`../process/get_grupos.php?id_curso=${idCurso}`)
         .then(response => response.json())
         .then(data => {
+            selectGrupo.innerHTML = '<option value="">-- Seleccione Grupo --</option>';
+
             if (data.success && data.grupos.length > 0) {
-                selectGrupo.innerHTML = '<option value="">-- Seleccione Grupo --</option>';
-                
                 data.grupos.forEach(grupo => {
                     const option = document.createElement('option');
                     option.value = grupo.id_grupo;
@@ -932,9 +940,151 @@ function exportarPDF(){
 }
 
 
+window.abrirEditarAlumno = function(id){
+
+    let modal =
+        document.getElementById(
+            'modalEditarAlumno'
+        );
+
+    let contenedor =
+        document.getElementById(
+            'contenidoEditarAlumno'
+        );
+
+    if(!modal || !contenedor){
+
+        alert("Modal no encontrado");
+        return;
+
+    }
+
+    modal.classList.remove('hidden');
+
+    contenedor.innerHTML =
+        '<div class="text-center py-10">Cargando...</div>';
+
+    fetch(`editar_alumno.php?id=${id}`)
+
+    .then(res => res.text())
+
+    .then(html => {
+
+        contenedor.innerHTML = html;
+
+    })
+
+    .catch(() => {
+
+        contenedor.innerHTML =
+            '<div>Error al cargar</div>';
+
+    });
+
+}
+
+window.cerrarModalEditar = function(){
+
+    let modal =
+        document.getElementById(
+            'modalEditarAlumno'
+        );
+
+    if(modal){
+
+        modal.classList.add('hidden');
+
+    }
+
+}
+
+
+window.addEventListener("click", function(e){
+
+    let modal =
+        document.getElementById(
+            "modalEditarAlumno"
+        );
+
+    if(
+        modal &&
+        e.target === modal
+    ){
+
+        window.cerrarModalEditar();
+
+    }
+
+});
+
+
 
 
 </script>
+
+<!-- MODAL EDITAR ALUMNO -->
+
+<div id="modalEditarAlumno"
+     class="fixed inset-0
+            bg-black bg-opacity-70
+            flex items-center justify-center
+            hidden
+            z-50">
+
+    <div class="
+        bg-gray-900
+        text-white
+        rounded-xl
+        shadow-2xl
+        w-full
+        max-w-4xl
+        p-6
+        relative
+        border border-blue-500
+        max-h-[90vh]
+        overflow-y-auto
+    ">
+
+        <!-- BOTON CERRAR -->
+
+        <button
+            onclick="window.cerrarModalEditar()"
+            class="
+                absolute
+                top-3
+                right-3
+                text-gray-400
+                hover:text-white
+                text-xl
+            ">
+            ✕
+        </button>
+
+        <!-- TITULO -->
+
+        <h2 class="
+            text-2xl
+            font-bold
+            mb-4
+            text-blue-400
+        ">
+            Editar Alumno
+        </h2>
+
+        <!-- CONTENIDO DINAMICO -->
+
+        <div id="contenidoEditarAlumno">
+
+            <div class="text-center py-10">
+                Cargando...
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 
 <?php
 $content = ob_get_clean();
