@@ -79,7 +79,7 @@ ob_start();
     <button class="tab-btn" onclick="showTab('tab2', this)">Horarios especiales</button>
 </div>
 
-<!-- ================= TAB 1 (TU CÓDIGO ORIGINAL SIN CAMBIOS) ================= -->
+<!-- ================= TAB 1 ================= -->
 <div id="tab1">
 
     <!-- CREAR CURSO -->
@@ -91,198 +91,213 @@ ob_start();
                 class="border px-3 py-2 rounded w-full mb-2">
 
             <button class="bg-teal-600 text-white px-4 py-2 rounded">
-            Agregar Curso
+                Agregar Curso
             </button>
         </form>
     </div>
 
-    <!-- LISTA CURSOS (RESTAURADO) -->
+    <!-- LISTA CURSOS -->
     <div class="card">
         <h3 class="font-semibold mb-3">Cursos Registrados</h3>
 
         <table class="w-full border rounded overflow-hidden">
             <thead class="bg-teal-600 text-white">
-            <tr>
-                <th class="p-3 text-left">ID</th>
-                <th class="p-3 text-left">Nombre Curso</th>
-            </tr>
+                <tr>
+                    <th class="p-3 text-left">ID</th>
+                    <th class="p-3 text-left">Nombre Curso</th>
+                </tr>
             </thead>
 
             <tbody class="bg-white">
-            <?php if($cursos): ?>
-                <?php foreach($cursos as $c): ?>
-                    <tr class="border-t hover:bg-gray-50">
-                        <td class="p-2"><?= $c['id_curso'] ?></td>
-                        <td class="p-2"><?= htmlspecialchars($c['nombre_curso']) ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr><td colspan="2" class="p-2 text-center">No hay cursos</td></tr>
-            <?php endif; ?>
+            <?php foreach($cursos as $c): ?>
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="p-2"><?= $c['id_curso'] ?></td>
+                    <td class="p-2"><?= htmlspecialchars($c['nombre_curso']) ?></td>
+                </tr>
+            <?php endforeach; ?>
             </tbody>
         </table>
     </div>
 
-<!-- CREAR GRUPO -->
-<form action="../process/process_grupos.php" method="POST" class="card">
+    <!-- CREAR GRUPO -->
+    <form action="../process/process_grupos.php" method="POST" class="card">
 
-  <h3 class="font-semibold mb-3">Crear Grupo</h3>
+        <h3 class="font-semibold mb-3">Crear Grupo</h3>
 
-  <div class="grid">
+        <div class="grid">
 
-        <select name="id_curso" class="border px-3 py-2 rounded" required>
-            <option value="">Seleccione curso</option>
-            <?php foreach($cursos as $c): ?>
-                <option value="<?= $c['id_curso'] ?>">
-                    <?= htmlspecialchars($c['nombre_curso']) ?>
-                </option>
+            <select name="id_curso" class="border px-3 py-2 rounded" required>
+                <option value="">Seleccione curso</option>
+                <?php foreach($cursos as $c): ?>
+                    <option value="<?= $c['id_curso'] ?>">
+                        <?= htmlspecialchars($c['nombre_curso']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <input type="text" name="nombre_grupo" placeholder="Grupo A"
+                class="border px-3 py-2 rounded" required>
+
+            <input type="time" name="hora_inicio" class="border px-3 py-2 rounded" required>
+            <input type="time" name="hora_fin" class="border px-3 py-2 rounded" required>
+
+        </div>
+
+        <div class="mt-3 flex flex-wrap gap-3">
+            <label><input type="checkbox" name="dias[]" value="Lunes"> Lunes</label>
+            <label><input type="checkbox" name="dias[]" value="Martes"> Martes</label>
+            <label><input type="checkbox" name="dias[]" value="Miércoles"> Miércoles</label>
+            <label><input type="checkbox" name="dias[]" value="Jueves"> Jueves</label>
+            <label><input type="checkbox" name="dias[]" value="Viernes"> Viernes</label>
+            <label><input type="checkbox" name="dias[]" value="Sábado"> Sábado</label>
+            <label><input type="checkbox" name="dias[]" value="Domingo"> Domingo</label>
+        </div>
+
+        <button class="mt-4 bg-teal-600 text-white px-4 py-2 rounded">
+            Crear Grupo
+        </button>
+
+    </form>
+
+    <!-- TABLA GRUPOS -->
+    <div class="card">
+        <h3 class="font-semibold mb-3">Grupos Registrados</h3>
+
+        <table class="w-full border rounded overflow-hidden">
+            <thead class="bg-blue-600 text-white">
+                <tr>
+                    <th class="p-3 text-left">Curso</th>
+                    <th class="p-3 text-left">Grupo</th>
+                    <th class="p-3 text-left">Días</th>
+                    <th class="p-3 text-left">Horario</th>
+                    <th class="p-3 text-center">Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody class="bg-white">
+            <?php foreach($grupos as $g): ?>
+                <tr class="border-t">
+                    <td class="p-2"><?= $g['nombre_curso'] ?></td>
+                    <td class="p-2"><?= $g['nombre_grupo'] ?></td>
+                    <td class="p-2"><?= $g['dias'] ?></td>
+                    <td class="p-2">
+                        <?= substr($g['hora_inicio'],0,5) ?> - <?= substr($g['hora_fin'],0,5) ?>
+                    </td>
+                    <td class="p-2 text-center">
+
+                        <button onclick="abrirEditarGrupo(<?= $g['id_grupo'] ?>)"
+                                class="bg-yellow-500 text-white px-2 py-1 rounded">
+                            Editar
+                        </button>
+
+                        <button onclick="eliminarGrupo(<?= $g['id_grupo'] ?>)"
+                                class="bg-red-600 text-white px-3 py-1 rounded text-sm">
+                            Eliminar
+                        </button>
+
+                    </td>
+                </tr>
             <?php endforeach; ?>
-        </select>
+            </tbody>
+        </table>
+    </div>
 
-        <input type="text" name="nombre_grupo" placeholder="Grupo A"
-            class="border px-3 py-2 rounded" required>
+    <!-- ================= HORARIOS ESPECIALES ================= -->
+    <div class="card mt-6">
 
-        <input type="time" name="hora_inicio" class="border px-3 py-2 rounded" required>
-        <input type="time" name="hora_fin" class="border px-3 py-2 rounded" required>
+        <h3 class="font-semibold mb-3 text-blue-600">
+            Horarios Especiales
+        </h3>
 
-  </div>
+        <?php
+        $stmt = $pdo->query("
+            SELECT 
+                he.*,
+                g.nombre_grupo,
+                c.nombre_curso
+            FROM horarios_especiales he
+            INNER JOIN grupos g ON g.id_grupo = he.id_grupo
+            INNER JOIN cursos c ON c.id_curso = g.id_curso
+            ORDER BY g.id_grupo, he.dia_semana
+        ");
 
-  <div class="mt-3 flex flex-wrap gap-3">
-    <label><input type="checkbox" name="dias[]" value="Lunes"> Lunes</label>
-    <label><input type="checkbox" name="dias[]" value="Martes"> Martes</label>
-    <label><input type="checkbox" name="dias[]" value="Miércoles"> Miércoles</label>
-    <label><input type="checkbox" name="dias[]" value="Jueves"> Jueves</label>
-    <label><input type="checkbox" name="dias[]" value="Viernes"> Viernes</label>
-    <label><input type="checkbox" name="dias[]" value="Sábado"> Sábado</label>
-    <label><input type="checkbox" name="dias[]" value="Domingo"> Domingo</label>
-  </div>
+        $data = $stmt->fetchAll();
 
-  <button class="mt-4 bg-teal-600 text-white px-4 py-2 rounded">
-    Crear Grupo
-  </button>
+        $horariosEspeciales = [];
 
-</form>
+        foreach($data as $d){
 
-<!-- TABLA GRUPOS (RESTAURADA) -->
-<div class="card">
-  <h3 class="font-semibold mb-3">Grupos Registrados</h3>
+            $key = $d['nombre_curso'].'-'.$d['nombre_grupo'];
 
-  <table class="w-full border rounded overflow-hidden">
-    <thead class="bg-blue-600 text-white">
-      <tr>
-        <th class="p-3 text-left">Curso</th>
-        <th class="p-3 text-left">Grupo</th>
-        <th class="p-3 text-left">Días</th>
-        <th class="p-3 text-left">Horario</th>
-      </tr>
-    </thead>
+            if(!isset($horariosEspeciales[$key])){
+                $horariosEspeciales[$key] = [
+                    'id_grupo' => $d['id_grupo'], // 🔥 IMPORTANTE
+                    'curso' => $d['nombre_curso'],
+                    'grupo' => $d['nombre_grupo'],
+                    'horarios' => []
+                ];
+            }
 
-    <tbody class="bg-white">
-    <?php foreach($grupos as $g): ?>
-        <tr class="border-t">
-            <td class="p-2"><?= $g['nombre_curso'] ?></td>
-            <td class="p-2"><?= $g['nombre_grupo'] ?></td>
-            <td class="p-2"><?= $g['dias'] ?></td>
-            <td class="p-2">
-                <?= substr($g['hora_inicio'],0,5) ?> - <?= substr($g['hora_fin'],0,5) ?>
-            </td>
-        </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table>
-</div>
+            $horariosEspeciales[$key]['horarios'][] =
+                $d['dia_semana'].' '.
+                substr($d['hora_inicio'],0,5).' - '.
+                substr($d['hora_fin'],0,5);
+        }
+        ?>
 
-<!-- ========================= -->
-<!-- HORARIOS ESPECIALES (TABLA) -->
-<!-- ========================= -->
-<div class="card mt-6">
+        <table class="w-full border rounded overflow-hidden">
 
-<h3 class="font-semibold mb-3 text-blue-600">
-Horarios Especiales
-</h3>
+            <thead class="bg-blue-700 text-white">
+                <tr>
+                    <th class="p-2">Curso</th>
+                    <th class="p-2">Grupo</th>
+                    <th class="p-2">Horarios</th>
+                    <th class="p-2">Acciones</th>
+                </tr>
+            </thead>
 
-<?php
-$stmt = $pdo->query("
-    SELECT 
-        he.*,
-        g.nombre_grupo,
-        c.nombre_curso
-    FROM horarios_especiales he
-    INNER JOIN grupos g ON g.id_grupo = he.id_grupo
-    INNER JOIN cursos c ON c.id_curso = g.id_curso
-    ORDER BY g.id_grupo, he.dia_semana
-");
+            <tbody>
+            <?php foreach($horariosEspeciales as $g): ?>
+                <tr class="border-t">
 
-$data = $stmt->fetchAll();
+                    <td class="p-2">
+                        <?= htmlspecialchars($g['curso']) ?>
+                    </td>
 
+                    <td class="p-2">
+                        <?= htmlspecialchars($g['grupo']) ?>
+                    </td>
 
-// =========================
-// AGRUPAR POR GRUPO (FIX VARIABLE)
-// =========================
-$horariosEspeciales = [];
+                    <td class="p-2 text-sm text-gray-700">
+                        <?php foreach($g['horarios'] as $h): ?>
+                            <div><?= $h ?></div>
+                        <?php endforeach; ?>
+                    </td>
 
-foreach($data as $d){
+                    <td class="p-2 text-center">
 
-    $key = $d['nombre_curso'].'-'.$d['nombre_grupo'];
+                        <button onclick="editarHorarioEspecial(<?= $g['id_grupo'] ?>)"
+                                class="bg-yellow-500 text-white px-2 py-1 rounded">
+                            Editar
+                        </button>
 
-    if(!isset($horariosEspeciales[$key])){
+                        <button onclick="eliminarHorarioEspecial(<?= $g['id_grupo'] ?>)"
+                                class="bg-red-600 text-white px-3 py-1 rounded text-sm">
+                            Eliminar
+                        </button>
 
-        $horariosEspeciales[$key] = [
-            'curso' => $d['nombre_curso'],
-            'grupo' => $d['nombre_grupo'],
-            'horarios' => []
-        ];
-    }
+                    </td>
 
-    $horariosEspeciales[$key]['horarios'][] =
-        $d['dia_semana'].' '.
-        substr($d['hora_inicio'],0,5).' - '.
-        substr($d['hora_fin'],0,5);
-}
-?>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
 
+        </table>
 
-<table class="w-full border rounded overflow-hidden">
+    </div>
 
-<thead class="bg-blue-700 text-white">
-<tr>
-    <th class="p-2">Curso</th>
-    <th class="p-2">Grupo</th>
-    <th class="p-2">Horarios</th>
-</tr>
-</thead>
+</div> <!-- CIERRE TAB 1 -->
 
-<tbody>
-
-<?php foreach($horariosEspeciales as $g): ?>
-
-<tr class="border-t">
-
-    <td class="p-2">
-        <?= htmlspecialchars($g['curso']) ?>
-    </td>
-
-    <td class="p-2">
-        <?= htmlspecialchars($g['grupo']) ?>
-    </td>
-
-    <td class="p-2 text-sm text-gray-700">
-
-        <?php foreach($g['horarios'] as $h): ?>
-            <div><?= $h ?></div>
-        <?php endforeach; ?>
-
-    </td>
-
-</tr>
-
-<?php endforeach; ?>
-
-</tbody>
-</table>
-
-</div>
-</div> <!-- CIERRE DE TAB 1 -->
 
 
 <!-- ========================= -->
@@ -375,6 +390,75 @@ foreach($dias as $d):
 
 </div>
 
+</div>     <!-- CIERRE DE TAB 2 -->
+
+<!-- MODAL EDITAR GRUPO -->
+
+<div id="modalEditar" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+
+    <div class="bg-white p-6 rounded-lg w-[400px]">
+
+        <h2 class="text-lg font-bold mb-3">Editar Grupo</h2>
+
+        <input type="hidden" id="edit_id_grupo">
+
+        <input type="text" id="edit_nombre" class="border p-2 w-full mb-2" placeholder="Nombre grupo">
+
+        <input type="time" id="edit_inicio" class="border p-2 w-full mb-2">
+
+        <input type="time" id="edit_fin" class="border p-2 w-full mb-2">
+
+        <div class="mb-2">
+            <label><input type="checkbox" value="Lunes" class="edit_dia"> Lunes</label>
+            <label><input type="checkbox" value="Martes" class="edit_dia"> Martes</label>
+            <label><input type="checkbox" value="Miércoles" class="edit_dia"> Miércoles</label>
+            <label><input type="checkbox" value="Jueves" class="edit_dia"> Jueves</label>
+            <label><input type="checkbox" value="Viernes" class="edit_dia"> Viernes</label>
+            <label><input type="checkbox" value="Sábado" class="edit_dia"> Sábado</label>
+            <label><input type="checkbox" value="Domingo" class="edit_dia"> Domingo</label>
+        </div>
+
+        <div class="flex justify-between mt-4">
+
+            <button onclick="cerrarModal()" class="bg-gray-400 px-3 py-1 rounded">
+                Cancelar
+            </button>
+
+            <button onclick="guardarEdicionGrupo()" class="bg-teal-600 text-white px-3 py-1 rounded">
+                Guardar
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- MODAL EDITAR HORARIO ESPECIAL -->
+
+<div id="modalEspecial" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+
+    <div class="bg-white p-6 rounded w-[500px]">
+
+        <h2 class="font-bold mb-3">Editar Horario Especial</h2>
+
+        <input type="hidden" id="edit_especial_id">
+
+        <div id="edit_dias_container" class="space-y-2"></div>
+
+        <div class="flex justify-between mt-4">
+
+            <button onclick="cerrarEspecial()" class="bg-gray-400 px-3 py-1 rounded">
+                Cancelar
+            </button>
+
+            <button onclick="guardarEspecial()" class="bg-blue-600 text-white px-3 py-1 rounded">
+                Guardar
+            </button>
+
+        </div>
+
+    </div>
 </div>
 
 
@@ -571,6 +655,255 @@ function guardarHorarioEspecial(){
 
 }
 
+// =========================
+// FUNCIONES DE ELIMINACIÓN DE GRUPO
+// =========================
+function eliminarGrupo(id){
+
+    if(!confirm("¿Seguro que deseas eliminar este grupo?")){
+        return;
+    }
+
+    fetch("../process/eliminar_grupo.php", {
+        method: "POST",
+        headers:{
+            "Content-Type":"application/x-www-form-urlencoded"
+        },
+        body: "id_grupo=" + id
+    })
+    .then(res => res.text())
+    .then(resp => {
+
+        alert("Grupo eliminado correctamente");
+        location.reload();
+
+    })
+    .catch(() => {
+
+        alert("Error al eliminar");
+
+    });
+
+}
+// =========================
+// FUNCIONES DE ELIMINACIÓN DE HORARIO ESPECIAL
+// =========================
+
+function eliminarHorarioEspecial(grupo){
+
+    if(!confirm("¿Eliminar todos los horarios especiales de este grupo?")){
+        return;
+    }
+
+    fetch("../process/eliminar_horario_especial.php", {
+        method: "POST",
+        headers:{
+            "Content-Type":"application/x-www-form-urlencoded"
+        },
+        body: "grupo=" + encodeURIComponent(grupo)
+    })
+    .then(res => res.text())
+    .then(resp => {
+
+        alert("Horario especial eliminado");
+        location.reload();
+
+    })
+    .catch(() => {
+
+        alert("Error al eliminar");
+
+    });
+
+}
+
+// =========================
+// FUNCIONES DE EDICIÓN DE GRUPO
+// =========================
+
+function abrirEditarGrupo(id){
+
+    fetch("../process/get_grupo_by_id.php?id_grupo=" + id)
+    .then(res => res.json())
+    .then(data => {
+
+        if(!data.success){
+            alert("Error al cargar grupo");
+            return;
+        }
+
+        let g = data.grupo;
+
+        document.getElementById("edit_id_grupo").value = g.id_grupo;
+        document.getElementById("edit_nombre").value = g.nombre_grupo;
+        document.getElementById("edit_inicio").value = g.hora_inicio;
+        document.getElementById("edit_fin").value = g.hora_fin;
+
+        // limpiar checkboxes
+        document.querySelectorAll(".edit_dia").forEach(c => c.checked = false);
+
+        // marcar días
+        if(g.dias){
+            let dias = g.dias.split(", ");
+            dias.forEach(d => {
+                document.querySelectorAll(".edit_dia").forEach(c => {
+                    if(c.value === d) c.checked = true;
+                });
+            });
+        }
+
+        document.getElementById("modalEditar").classList.remove("hidden");
+    });
+}
+
+function cerrarModal(){
+    document.getElementById("modalEditar").classList.add("hidden");
+}
+
+function guardarEdicionGrupo(){
+
+    let id = document.getElementById("edit_id_grupo").value;
+    let nombre = document.getElementById("edit_nombre").value;
+    let inicio = document.getElementById("edit_inicio").value;
+    let fin = document.getElementById("edit_fin").value;
+
+    let dias = [];
+    document.querySelectorAll(".edit_dia:checked").forEach(c => {
+        dias.push(c.value);
+    });
+
+    if(nombre === ""){
+        alert("Nombre requerido");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("id_grupo", id);
+    formData.append("nombre_grupo", nombre);
+    formData.append("hora_inicio", inicio);
+    formData.append("hora_fin", fin);
+
+    dias.forEach(d => formData.append("dias[]", d));
+
+    fetch("../process/update_grupo.php", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if(data.success){
+            alert("Grupo actualizado");
+            location.reload();
+        } else {
+            alert("Error al actualizar");
+        }
+
+    });
+}
+
+// =========================
+// FUNCIONES DE EDICIÓN DE HORARIO ESPECIAL
+// =========================
+
+function editarHorarioEspecial(id){
+
+    fetch("../process/get_horario_especial.php?id_grupo=" + id)
+    .then(res => res.json())
+    .then(data => {
+
+        if(!data.success){
+            alert("Error");
+            return;
+        }
+
+        document.getElementById("edit_especial_id").value = id;
+
+        let container = document.getElementById("edit_dias_container");
+        container.innerHTML = "";
+
+        let dias = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+
+        dias.forEach(dia => {
+
+            let registro = data.data.find(d => d.dia_semana === dia);
+
+            let inicio = registro ? registro.hora_inicio.slice(0,5) : "";
+            let fin = registro ? registro.hora_fin.slice(0,5) : "";
+
+            container.innerHTML += `
+                <div class="border p-2 rounded">
+                    <label class="font-bold">
+                        <input type="checkbox" class="esp-dia" value="${dia}"
+                        ${registro ? "checked" : ""}>
+                        ${dia}
+                    </label>
+
+                    <div class="flex gap-2 mt-2">
+                        <input type="time" class="esp-inicio border p-1" value="${inicio}">
+                        <input type="time" class="esp-fin border p-1" value="${fin}">
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById("modalEspecial").classList.remove("hidden");
+    });
+}
+
+// =========================
+// GUARDAR HORARIO ESPECIAL EDITADO
+// =========================
+
+function guardarEspecial(){
+
+    let id = document.getElementById("edit_especial_id").value;
+
+    let dias = [];
+    let formData = new FormData();
+
+    formData.append("id_grupo", id);
+
+    document.querySelectorAll("#edit_dias_container > div").forEach(card => {
+
+        let check = card.querySelector(".esp-dia");
+        let inicio = card.querySelector(".esp-inicio");
+        let fin = card.querySelector(".esp-fin");
+
+        if(check.checked){
+
+            dias.push(check.value);
+
+            formData.append(`hora_inicio[${check.value}]`, inicio.value);
+            formData.append(`hora_fin[${check.value}]`, fin.value);
+        }
+    });
+
+    dias.forEach(d => formData.append("dias[]", d));
+
+    fetch("../process/update_horario_especial.php", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if(data.success){
+            alert("Actualizado");
+            location.reload();
+        }else{
+            alert("Error");
+        }
+    });
+}
+
+// =========================
+// CERRAR MODAL HORARIO ESPECIAL
+// =========================
+
+function cerrarEspecial(){
+    document.getElementById("modalEspecial").classList.add("hidden");
+}
 
 
 </script>
