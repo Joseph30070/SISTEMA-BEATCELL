@@ -1,128 +1,117 @@
 -- ======================================
--- GRUPOS
+-- GRUPOS (4 NORMALES)
 -- ======================================
 
 INSERT INTO grupos (id_curso, nombre_grupo, dias, hora_inicio, hora_fin) VALUES
-(2, 'Grupo P', 'Martes, Jueves, Sábado', '14:00:00', '16:00:00'),
-(2, 'Grupo Z', 'Lunes, Miércoles, Viernes', '10:00:00', '12:00:00'),
-(3, 'Grupo R', 'Lunes, Martes, Viernes, Sábado', '16:30:00', '18:30:00'),
-(5, 'Grupo A', 'Lunes, Miércoles', '08:00:00', '10:00:00');
 
-
-
--- ======================================
--- ALUMNOS
--- ======================================
-
-INSERT INTO alumnos (nombre, dni, telefono) VALUES
-('Juan Perez', '10000001', '900000001'),
-('Maria Lopez', '10000002', '900000002'),
-('Carlos Sanchez', '10000003', '900000003'),
-('Ana Torres', '10000004', '900000004'),
-('Luis Ramirez', '10000005', '900000005'),
-('Sofia Castillo', '10000006', '900000006'),
-('Pedro Vargas', '10000007', '900000007'),
-('Lucia Mendoza', '10000008', '900000008'),
-('Diego Flores', '10000009', '900000009'),
-('Valeria Cruz', '10000010', '900000010');
-
+(1, 'Robótica - A', 'Lunes/Miércoles', '08:00:00', '10:00:00'),
+(2, 'Electrónica - A', 'Martes/Jueves', '10:00:00', '12:00:00'),
+(3, 'Celulares - A', 'Lunes/Miércoles/Viernes', '14:00:00', '16:00:00'),
+(4, 'PC - A', 'Martes/Jueves', '16:00:00', '18:00:00');
 
 
 -- ======================================
--- MATRICULAS
+-- HORARIO ESPECIAL (1)
 -- ======================================
 
-INSERT INTO matriculas (id_alumno, id_grupo, tipo, monto_matricula) VALUES
-(1, 1, 'MATRICULA', 50),
-(2, 2, 'MATRICULA', 50),
-(3, 3, 'MATRICULA', 50),
-(4, 4, 'MATRICULA', 50),
-(5, 1, 'MATRICULA', 50),
-(6, 2, 'MATRICULA', 50),
-(7, 3, 'MATRICULA', 50),
-(8, 4, 'MATRICULA', 50),
-(9, 1, 'MATRICULA', 50),
-(10, 2, 'MATRICULA', 50);
+INSERT INTO horarios_especiales (id_grupo, dia_semana, hora_inicio, hora_fin) VALUES
+(1, 'Sábado', '09:00:00', '12:00:00');
 
 
+-- ======================================
+-- ALUMNOS (5 COMPLETOS)
+-- ======================================
 
--- =======================================
--- PRACTICANTES
--- =======================================
+INSERT INTO alumnos (
+nombre, dni, telefono, telefonopadres, telefonoapoderado,
+contacto_pago, edad, email, direccion,
+nombre_apoderado, dni_apoderado, correo_apoderado,
+notificar_emergencia, tipo_ciclo, medio_captacion
+) VALUES
+
+('Juan Pérez López','71234567','987111111','987222222','987333333',
+'Alumno',18,'juan@gmail.com','Av. Lima 123',
+'Carlos Pérez','40123456','apoderado1@gmail.com',
+'Si','Regular','Facebook'),
+
+('María Gómez Rojas','72345678','987444444','987555555','987666666',
+'Apoderado',19,'maria@gmail.com','Jr. Arequipa 456',
+'Lucía Rojas','40234567','apoderado2@gmail.com',
+'Si','Regular','TikTok'),
+
+('Kevin Torres Díaz','73456789','987777777','987888888','987999999',
+'Alumno',20,'kevin@gmail.com','Av. Grau 789',
+'Pedro Torres','40345678','apoderado3@gmail.com',
+'No','Intensivo','Instagram'),
+
+('Ana Castillo Vargas','74567890','986111111','986222222','986333333',
+'Apoderado',21,'ana@gmail.com','Av. Brasil 321',
+'Rosa Vargas','40456789','apoderado4@gmail.com',
+'Si','Regular','Referencia'),
+
+('Luis Ramírez Soto','75678901','985111111','985222222','985333333',
+'Alumno',22,'luis@gmail.com','Av. Colonial 654',
+'Juan Soto','40567890','apoderado5@gmail.com',
+'No','Intensivo','Web');
+
+
+-- ======================================
+-- MATRÍCULAS (ALUMNOS YA ASIGNADOS A GRUPO + HORARIO)
+-- ======================================
+
+INSERT INTO matriculas (
+id_alumno, id_grupo, tipo, monto_matricula, monto_pagado, estado
+) VALUES
+
+-- Juan → Robótica (L/M 08-10)
+(1, 1, 'MATRICULA', 50.00, 0.00, 'Activo'),
+
+-- María → Electrónica (M/J 10-12)
+(2, 2, 'MATRICULA', 50.00, 0.00, 'Activo'),
+
+-- Kevin → Celulares (L/M/V 14-16)
+(3, 3, 'MATRICULA', 50.00, 0.00, 'Activo'),
+
+-- Ana → PC (M/J 16-18)
+(4, 4, 'MATRICULA', 50.00, 0.00, 'Activo'),
+
+-- Luis → Robótica (mismo grupo permitido)
+(5, 1, 'MATRICULA', 50.00, 0.00, 'Activo');
+
+
+-- ======================================
+-- PRÁCTICANTES (5 COMPLETOS)
+-- ======================================
 
 INSERT INTO practicantes (
-    nombre,
-    telefono,
-    telefono_emergencia,
-    dni,
-    id_carrera,
-    horario,
-    observacion
-) VALUES
-('Luis Gomez', '911111111', '922222222', '20000001', 1, 'Mañana', 'Buen desempeño'),
-('Andrea Rojas', '933333333', '944444444', '20000002', 2, 'Tarde', 'Apoyo en laboratorio'),
-('Miguel Torres', '955555555', '966666666', '20000003', 3, 'Mañana', 'Responsable'),
-('Daniela Perez', '977777777', '988888888', '20000004', 4, 'Tarde', 'En capacitación'),
-('Jorge Castillo', '999999999', '900000000', '20000005', 5, 'Mañana', 'Nuevo ingreso');
-
-
-
--- ======================================
--- ASISTENCIAS
--- ======================================
-
-INSERT INTO asistencias (
-    id_alumno,
-    fecha,
-    hora_entrada,
-    hora_salida,
-    estado
+nombre, telefono, telefono_emergencia, dni,
+id_carrera, horario, edad, email, direccion,
+nombre_apoderado, dni_apoderado, correo_apoderado, telefono_apoderado,
+notificar_emergencia, modalidad_horario, observacion
 ) VALUES
 
--- LUNES 06/04/2026
-(1,'2026-04-06','10:01:15',NULL,'Asistió'),
-(2,'2026-04-06',NULL,NULL,'Ausente'),
-(3,'2026-04-06','10:05:10',NULL,'Asistió'),
-(4,'2026-04-06','10:07:22',NULL,'Asistió'),
-(5,'2026-04-06','10:10:00',NULL,'Asistió'),
-(6,'2026-04-06',NULL,NULL,'Ausente'),
-(7,'2026-04-06','10:15:33',NULL,'Asistió'),
-(8,'2026-04-06','10:18:45',NULL,'Asistió'),
-(9,'2026-04-06',NULL,NULL,'Ausente'),
-(10,'2026-04-06','10:22:10',NULL,'Asistió'),
+('Carlos Medina Ruiz','999111222','999111333','81234567',
+1,'Mañana',20,'carlosm@gmail.com','Av. Los Olivos 123',
+'Pedro Medina','50123456','padre1@gmail.com','999444555',
+'Si','Presencial','Buen rendimiento'),
 
--- MARTES 07/04/2026
-(1,'2026-04-07','11:54:42',NULL,'Asistió'),
-(2,'2026-04-07',NULL,NULL,'Ausente'),
-(3,'2026-04-07','11:54:44',NULL,'Asistió'),
-(4,'2026-04-07','12:00:14',NULL,'Asistió'),
-(5,'2026-04-07','12:03:10',NULL,'Asistió'),
-(6,'2026-04-07',NULL,NULL,'Ausente'),
-(7,'2026-04-07','12:05:20',NULL,'Asistió'),
-(8,'2026-04-07','12:06:50',NULL,'Asistió'),
-(9,'2026-04-07',NULL,NULL,'Ausente'),
-(10,'2026-04-07','12:08:15',NULL,'Asistió'),
+('Lucía Fernández Soto','999222333','999222444','82345678',
+2,'Tarde',21,'luciaf@gmail.com','Av. San Juan 456',
+'María Soto','50234567','madre2@gmail.com','999555666',
+'Si','Presencial','Excelente actitud'),
 
--- MIERCOLES 08/04/2026
-(1,'2026-04-08','11:27:35',NULL,'Asistió'),
-(2,'2026-04-08',NULL,NULL,'Ausente'),
-(3,'2026-04-08','11:30:12',NULL,'Asistió'),
-(4,'2026-04-08','12:04:59',NULL,'Asistió'),
-(5,'2026-04-08','12:06:22',NULL,'Asistió'),
-(6,'2026-04-08',NULL,NULL,'Ausente'),
-(7,'2026-04-08','12:10:11',NULL,'Asistió'),
-(8,'2026-04-08','12:12:45',NULL,'Asistió'),
-(9,'2026-04-08',NULL,NULL,'Ausente'),
-(10,'2026-04-08','12:15:00',NULL,'Asistió'),
+('Jorge Ramírez Peña','999333444','999333555','83456789',
+3,'Mañana',22,'jorger@gmail.com','Av. Central 789',
+'Luis Ramírez','50345678','padre3@gmail.com','999666777',
+'No','Virtual','Regular'),
 
--- JUEVES 09/04/2026
-(1,'2026-04-09',NULL,NULL,'Ausente'),
-(2,'2026-04-09',NULL,NULL,'Ausente'),
-(3,'2026-04-09','10:49:15',NULL,'Asistió'),
-(4,'2026-04-09','10:49:21',NULL,'Asistió'),
-(5,'2026-04-09','10:50:00',NULL,'Asistió'),
-(6,'2026-04-09',NULL,NULL,'Ausente'),
-(7,'2026-04-09','10:55:33',NULL,'Asistió'),
-(8,'2026-04-09','10:57:44',NULL,'Asistió'),
-(9,'2026-04-09',NULL,NULL,'Ausente'),
-(10,'2026-04-09','11:00:10',NULL,'Asistió');
+('Valeria Torres Lima','999444555','999444666','84567890',
+4,'Tarde',23,'valeriat@gmail.com','Av. Norte 321',
+'Rosa Lima','50456789','madre4@gmail.com','999777888',
+'Si','Presencial','Destacada'),
+
+('Miguel Chávez Rojas','999555666','999555777','85678901',
+5,'Noche',24,'miguelc@gmail.com','Av. Sur 654',
+'Juan Chávez','50567890','padre5@gmail.com','999888999',
+'No','Virtual','Requiere seguimiento');
+
