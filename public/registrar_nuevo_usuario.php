@@ -15,14 +15,12 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-        <!-- NOMBRE -->
         <div>
-          <label class="block text-gray-700 font-semibold mb-1">Nombre *</label>
+          <label class="block text-gray-700 font-semibold mb-1">Nombre Completo</label>
           <input type="text" name="nombre" required
             class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
         </div>
 
-        <!-- DNI -->
         <div>
           <label class="block text-gray-700 font-semibold mb-1">DNI *</label>
           <input type="text" name="dni" maxlength="8" required
@@ -30,24 +28,49 @@
             class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
         </div>
 
-        <!-- TELEFONO -->
         <div>
-          <label class="block text-gray-700 font-semibold mb-1">Teléfono *</label>
-          <input type="text" name="telefono" required
+          <label class="block text-gray-700 font-semibold mb-1">Edad</label>
+          <input type="number" name="edad" min="1" max="120"
             class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
         </div>
 
-        <!-- TELEFONO EMERGENCIA -->
         <div>
-          <label class="block text-gray-700 font-semibold mb-1">Teléfono Emergencia *</label>
-          <input type="text" name="telefono_emergencia" required
+          <label class="block text-gray-700 font-semibold mb-1">Correo electronico</label>
+          <input type="email" name="email"
             class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
         </div>
 
-        <!-- CARRERA -->
+        <div class="md:col-span-2">
+          <label class="block text-gray-700 font-semibold mb-1">Dirección</label>
+          <textarea name="direccion" rows="2"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-gray-700 font-semibold mb-1">Teléfono</label>
+          <input type="text" name="telefono"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-gray-700 font-semibold mb-1">Teléfono Emergencia</label>
+          <input type="text" name="telefono_emergencia"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-gray-700 font-semibold mb-1">Modalidad *</label>
+          <select name="modalidad_horario" required
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+            <option value="">-- Seleccione modalidad --</option>
+            <option value="Presencial">Presencial</option>
+            <option value="Virtual">Virtual</option>
+            <option value="Semipresencial">Semipresencial</option>
+          </select>
+        </div>
+
         <div>
           <label class="block text-gray-700 font-semibold mb-1">Carrera *</label>
-
           <div class="flex gap-2">
             <select name="id_carrera"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
@@ -58,8 +81,6 @@
               <option value="5">Mecatrónica</option>
               <option value="4">Redes y Comunicaciones</option>
             </select>
-
-            <!-- BOTON AGREGAR -->
             <button type="button"
               class="bg-blue-500 text-white px-3 rounded hover:bg-blue-600">
               +
@@ -67,15 +88,13 @@
           </div>
         </div>
 
-        <!-- HORARIO -->
         <div>
           <label class="block text-gray-700 font-semibold mb-1">Horario *</label>
           <input type="text" name="horario" required
-            placeholder="Ej: 08:00 - 12:00"
+            placeholder="Ej: Lunes y Mié 18:00 - 19:30"
             class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
         </div>
 
-        <!-- FECHA REGISTRO -->
         <div>
           <label class="block text-gray-700 font-semibold mb-1">Fecha Registro</label>
           <input type="date" name="fecha_registro"
@@ -83,17 +102,59 @@
             class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100">
         </div>
 
-      </div>
+        <div class="md:col-span-2">
+          <label class="block text-gray-700 font-semibold mb-1">Notificar en emergencia a</label>
+          <select name="notificar_emergencia"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+            <option value="">-- Seleccione --</option>
+            <option value="Padre">Padre</option>
+            <option value="Madre">Madre</option>
+            <option value="Abuelo">Abuelo</option>
+            <option value="Abuela">Abuela</option>
+            <option value="Tío">Tío</option>
+            <option value="Tía">Tía</option>
+            <option value="Apoderado">Apoderado</option>
+          </select>
+        </div>
 
-      <!-- OBSERVACION (full width) -->
-      <div>
+        <div>
         <label class="block text-gray-700 font-semibold mb-1">Observación</label>
         <textarea name="observacion" rows="3"
-          placeholder="Ej: Es algo impuntual, trabaja muy bien, es nuevo bajo observación..."
+          placeholder="Ej: Tiene preferencias horarias y falta los sábados..."
           class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
       </div>
 
-      <!-- BOTON -->
+        <div class="md:col-span-2">
+          <h1 class="text-2xl font-semibold text-gray-800 mb-3">Datos del Apoderado</h1>
+        </div>
+
+        <div>
+          <label class="block text-gray-700 font-semibold mb-1">Nombres del Apoderado</label>
+          <input type="text" name="nombre_apoderado"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-gray-700 font-semibold mb-1">DNI del Apoderado</label>
+          <input type="text" name="dni_apoderado" maxlength="8"
+            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-gray-700 font-semibold mb-1">Correo del Apoderado</label>
+          <input type="email" name="correo_apoderado"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-gray-700 font-semibold mb-1">Teléfono del Apoderado</label>
+          <input type="text" name="telefono_apoderado"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+
+      </div>
+
       <div class="pt-2">
         <button type="submit"
           class="bg-teal-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-teal-700 transition">
@@ -101,7 +162,6 @@
         </button>
       </div>
 
-      <!-- Campo oculto para la acción -->
       <input type="hidden" name="action" value="registrar">
 
     </form>

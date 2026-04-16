@@ -29,8 +29,17 @@ function registrarPracticante() {
     $dni = trim($_POST['dni'] ?? '');
     $telefono = trim($_POST['telefono'] ?? '');
     $telefono_emergencia = trim($_POST['telefono_emergencia'] ?? '');
+    $edad = trim($_POST['edad'] ?? null) ?: null;
+    $email = trim($_POST['email'] ?? null) ?: null;
+    $direccion = trim($_POST['direccion'] ?? null) ?: null;
     $id_carrera = $_POST['id_carrera'] ?? null;
+    $modalidad_horario = $_POST['modalidad_horario'] ?? null;
     $horario = trim($_POST['horario'] ?? '');
+    $nombre_apoderado = trim($_POST['nombre_apoderado'] ?? null) ?: null;
+    $dni_apoderado = trim($_POST['dni_apoderado'] ?? null) ?: null;
+    $correo_apoderado = trim($_POST['correo_apoderado'] ?? null) ?: null;
+    $telefono_apoderado = trim($_POST['telefono_apoderado'] ?? null) ?: null;
+    $notificar_emergencia = $_POST['notificar_emergencia'] ?? null;
     $observacion = trim($_POST['observacion'] ?? null);
 
     // Validaciones
@@ -49,6 +58,16 @@ function registrarPracticante() {
         exit;
     }
 
+    if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(['success' => false, 'message' => 'Email inválido']);
+        exit;
+    }
+
+    if (empty($modalidad_horario)) {
+        echo json_encode(['success' => false, 'message' => 'La modalidad es requerida']);
+        exit;
+    }
+
     // Verificar DNI único
     if (!empty($dni)) {
         $stmt = $pdo->prepare("SELECT id_practicante FROM practicantes WHERE dni = ? AND fecha_baja IS NULL");
@@ -62,8 +81,8 @@ function registrarPracticante() {
     try {
         $stmt = $pdo->prepare("
             INSERT INTO practicantes 
-            (nombre, dni, telefono, telefono_emergencia, id_carrera, horario, observacion, fecha_registro)
-            VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())
+            (nombre, dni, telefono, telefono_emergencia, edad, email, direccion, id_carrera, modalidad_horario, horario, nombre_apoderado, dni_apoderado, correo_apoderado, telefono_apoderado, notificar_emergencia, observacion, fecha_registro)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())
         ");
 
         $stmt->execute([
@@ -71,8 +90,17 @@ function registrarPracticante() {
             !empty($dni) ? $dni : null,
             !empty($telefono) ? $telefono : null,
             !empty($telefono_emergencia) ? $telefono_emergencia : null,
+            !empty($edad) ? $edad : null,
+            !empty($email) ? $email : null,
+            !empty($direccion) ? $direccion : null,
             !empty($id_carrera) ? $id_carrera : null,
+            !empty($modalidad_horario) ? $modalidad_horario : null,
             !empty($horario) ? $horario : null,
+            !empty($nombre_apoderado) ? $nombre_apoderado : null,
+            !empty($dni_apoderado) ? $dni_apoderado : null,
+            !empty($correo_apoderado) ? $correo_apoderado : null,
+            !empty($telefono_apoderado) ? $telefono_apoderado : null,
+            !empty($notificar_emergencia) ? $notificar_emergencia : null,
             !empty($observacion) ? $observacion : null
         ]);
 
@@ -96,12 +124,31 @@ function actualizarPracticante() {
     $dni = trim($_POST['dni'] ?? '');
     $telefono = trim($_POST['telefono'] ?? '');
     $telefono_emergencia = trim($_POST['telefono_emergencia'] ?? '');
+    $edad = trim($_POST['edad'] ?? null) ?: null;
+    $email = trim($_POST['email'] ?? null) ?: null;
+    $direccion = trim($_POST['direccion'] ?? null) ?: null;
     $id_carrera = $_POST['id_carrera'] ?? null;
+    $modalidad_horario = $_POST['modalidad_horario'] ?? null;
     $horario = trim($_POST['horario'] ?? '');
+    $nombre_apoderado = trim($_POST['nombre_apoderado'] ?? null) ?: null;
+    $dni_apoderado = trim($_POST['dni_apoderado'] ?? null) ?: null;
+    $correo_apoderado = trim($_POST['correo_apoderado'] ?? null) ?: null;
+    $telefono_apoderado = trim($_POST['telefono_apoderado'] ?? null) ?: null;
+    $notificar_emergencia = $_POST['notificar_emergencia'] ?? null;
     $observacion = trim($_POST['observacion'] ?? null);
 
     if (!$id_practicante || !$nombre) {
         echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
+        exit;
+    }
+
+    if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(['success' => false, 'message' => 'Email inválido']);
+        exit;
+    }
+
+    if (empty($modalidad_horario)) {
+        echo json_encode(['success' => false, 'message' => 'La modalidad es requerida']);
         exit;
     }
 
@@ -122,7 +169,9 @@ function actualizarPracticante() {
         $stmt = $pdo->prepare("
             UPDATE practicantes 
             SET nombre = ?, dni = ?, telefono = ?, telefono_emergencia = ?, 
-                id_carrera = ?, horario = ?, observacion = ?
+                edad = ?, email = ?, direccion = ?, id_carrera = ?, modalidad_horario = ?, horario = ?, 
+                nombre_apoderado = ?, dni_apoderado = ?, correo_apoderado = ?, telefono_apoderado = ?, 
+                notificar_emergencia = ?, observacion = ?
             WHERE id_practicante = ?
         ");
 
@@ -131,8 +180,17 @@ function actualizarPracticante() {
             !empty($dni) ? $dni : null,
             !empty($telefono) ? $telefono : null,
             !empty($telefono_emergencia) ? $telefono_emergencia : null,
+            !empty($edad) ? $edad : null,
+            !empty($email) ? $email : null,
+            !empty($direccion) ? $direccion : null,
             !empty($id_carrera) ? $id_carrera : null,
+            !empty($modalidad_horario) ? $modalidad_horario : null,
             !empty($horario) ? $horario : null,
+            !empty($nombre_apoderado) ? $nombre_apoderado : null,
+            !empty($dni_apoderado) ? $dni_apoderado : null,
+            !empty($correo_apoderado) ? $correo_apoderado : null,
+            !empty($telefono_apoderado) ? $telefono_apoderado : null,
+            !empty($notificar_emergencia) ? $notificar_emergencia : null,
             !empty($observacion) ? $observacion : null,
             $id_practicante
         ]);
