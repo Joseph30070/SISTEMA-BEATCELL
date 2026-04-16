@@ -576,17 +576,48 @@ function cargarGrupos(idCurso, groupSelectId = 'id_grupo', horarioInputId = 'hor
 
 // Función para cargar horario del grupo seleccionado
 function cargarHorario(idGrupo) {
-    const selectGrupo = document.getElementById('id_grupo');
-    const inputHorario = document.getElementById('horario');
-    
-    const selectedOption = selectGrupo.options[selectGrupo.selectedIndex];
-    
-    if (selectedOption.dataset.horario) {
-        inputHorario.value = selectedOption.dataset.horario;
-    } else {
+
+    const inputHorario =
+        document.getElementById('horario');
+
+    if (!idGrupo) {
         inputHorario.value = '';
+        return;
     }
+
+    fetch(
+        `../process/get_horario_grupo.php?id_grupo=${idGrupo}`
+    )
+
+    .then(res => res.json())
+
+    .then(data => {
+
+        if (data.success) {
+
+            inputHorario.value =
+                data.horario;
+
+        } else {
+
+            inputHorario.value =
+                'Horario no encontrado';
+
+        }
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        inputHorario.value =
+            'Error al cargar horario';
+
+    });
+
 }
+
 
 // Función para mostrar/ocultar tabs
 function mostrarTab(tab) {
