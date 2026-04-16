@@ -137,7 +137,7 @@ CREATE TABLE matriculas (
 
     tipo VARCHAR(50) DEFAULT 'MATRICULA',
 
-    monto_matricula DECIMAL(10,2) DEFAULT 50.00,
+    monto_matricula DECIMAL(10,2) DEFAULT 0.00,
     monto_pagado DECIMAL(10,2) DEFAULT 0.00,
 
     fecha_matricula DATE DEFAULT CURRENT_DATE,

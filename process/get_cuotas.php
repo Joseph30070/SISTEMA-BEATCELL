@@ -1,65 +1,100 @@
 <?php
 
-require_once "../config/database.php";
+require_once "../config/db.php";
+
+header("Content-Type: application/json");
 
 try {
 
-    $estado = $_GET['estado'] ?? 'Pendiente';
+$sql = "
 
-    $sql = "
-        SELECT
+/* =========================
+   CUOTAS REALES
+   ========================= */
 
-            c.id_cuota,
-            c.numero_cuota,
-            c.monto_cuota,
-            c.monto_pagado,
-            c.fecha_vencimiento,
-            c.estado,
+SELECT
 
-            a.id_alumno,
-            a.nombre,
-            a.dni,
-            a.telefono,
+c.id_cuota,
+c.numero_cuota,
+c.monto_cuota,
+c.monto_pagado,
+c.fecha_vencimiento,
+c.estado,
 
-            m.id_matricula,
+a.nombre AS alumno,
+a.dni,
+a.telefono,
 
-            p.id_plan,
-            p.cantidad_cuotas,
-            p.monto_final
+m.id_matricula
 
-        FROM cuotas c
+FROM cuotas c
 
-        INNER JOIN planes_pago p
-            ON c.id_plan = p.id_plan
+INNER JOIN planes_pago p
+ON c.id_plan = p.id_plan
 
-        INNER JOIN matriculas m
-            ON p.id_matricula = m.id_matricula
+INNER JOIN matriculas m
+ON p.id_matricula = m.id_matricula
 
-        INNER JOIN alumnos a
-            ON m.id_alumno = a.id_alumno
+INNER JOIN alumnos a
+ON m.id_alumno = a.id_alumno
 
-        WHERE c.estado = ?
 
-        ORDER BY
-            c.fecha_vencimiento ASC
-    ";
+UNION ALL
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$estado]);
 
-    $cuotas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+/* =========================
+   MATRÍCULAS PAGADAS
+   (VISUAL / INFORMATIVO)
+   ========================= */
 
-    echo json_encode([
-        "status" => "success",
-        "data" => $cuotas
-    ]);
+SELECT
+
+m.id_matricula AS id_cuota,
+0 AS numero_cuota,
+m.monto_matricula AS monto_cuota,
+m.monto_pagado,
+DATE_ADD(m.fecha_matricula, INTERVAL 7 DAY) AS fecha_vencimiento,
+
+'Pagada' AS estado,
+
+a.nombre AS alumno,
+a.dni,
+a.telefono,
+
+m.id_matricula
+
+FROM matriculas m
+
+INNER JOIN alumnos a
+ON m.id_alumno = a.id_alumno
+
+WHERE m.monto_pagado >= m.monto_matricula
+
+ORDER BY fecha_vencimiento ASC
+
+";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute();
+
+$data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+echo json_encode([
+
+"status" => "success",
+"data" => $data
+
+]);
 
 } catch (Exception $e) {
 
-    echo json_encode([
-        "status" => "error",
-        "message" => $e->getMessage()
-    ]);
+echo json_encode([
+
+"status" => "error",
+"message" => $e->getMessage()
+
+]);
 
 }
+
 

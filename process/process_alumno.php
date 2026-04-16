@@ -110,6 +110,13 @@ try {
     // =========================
     // INSERT PRIMERA MATRÍCULA
     // =========================
+    
+    // MONTO DE MATRÍCULA DEFINIDO EN LA LÓGICA DEL SISTEMA
+    // IMPORTANTE: La base de datos tiene DEFAULT 0.00,
+    // pero el monto real se define aquí para tener control financiero.
+
+    $monto_matricula = 50.00; // <-- Puedes cambiar este valor cuando la matrícula cambie
+
     $stmt = $pdo->prepare(" 
         INSERT INTO matriculas (
             id_alumno,
@@ -127,7 +134,7 @@ try {
         $id_alumno,
         $id_grupo,
         'MATRICULA',
-        0,
+        $monto_matricula,
         'Activo'
     ]);
 
