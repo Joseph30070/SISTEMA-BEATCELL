@@ -122,7 +122,7 @@ if (isset($ROLE_MAP[$ROLE])) {
 
         <!-- Consulta: ADMISION o ADMINISTRADOR -->
         <?php if (in_array($ROLE, ['ADMISION','ADMINISTRADOR'], true)): ?>
-          <a href="<?= $base ?>/consulta.php"
+          <a href="<?= $base ?>/control_cuotas.php"
             class="flex items-center gap-3 px-3 py-2 rounded <?= $active==='consulta'?'bg-gray-200 text-gray-900':'text-gray-600 hover:bg-gray-100' ?>">
             <i class="fas fa-search"></i> <span>Control de cuotas</span>
           </a>

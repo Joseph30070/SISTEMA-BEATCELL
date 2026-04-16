@@ -42,7 +42,6 @@ INSERT INTO cursos (nombre_curso) VALUES
 ('Reparación de PC'),
 ('Ofimática');
 
-
 -- ======================================
 -- TABLA GRUPOS
 -- ======================================
@@ -61,7 +60,7 @@ CREATE TABLE grupos (
 );
 
 -- ======================================
--- NUEVA TABLA: HORARIOS ESPECIALES
+-- HORARIOS ESPECIALES
 -- ======================================
 
 CREATE TABLE horarios_especiales (
@@ -92,7 +91,6 @@ INSERT INTO carreras (nombre_carrera) VALUES
 ('Electrónica'),
 ('Redes y Comunicaciones'),
 ('Mecatrónica');
-
 
 -- ======================================
 -- TABLA ALUMNOS
@@ -138,8 +136,9 @@ CREATE TABLE matriculas (
     id_grupo INT NOT NULL,
 
     tipo VARCHAR(50) DEFAULT 'MATRICULA',
-    monto_matricula DECIMAL(10,2) DEFAULT 0,
-    monto_pagado DECIMAL(10,2) DEFAULT 0,
+
+    monto_matricula DECIMAL(10,2) DEFAULT 50.00,
+    monto_pagado DECIMAL(10,2) DEFAULT 0.00,
 
     fecha_matricula DATE DEFAULT CURRENT_DATE,
     estado VARCHAR(50) DEFAULT 'Activo',
@@ -189,7 +188,7 @@ CREATE TABLE practicantes (
 );
 
 -- ======================================
--- TABLA PROMOCIONES
+-- PROMOCIONES
 -- ======================================
 
 CREATE TABLE promociones (
@@ -205,7 +204,7 @@ CREATE TABLE promociones (
 );
 
 -- ======================================
--- TABLA MATRICULAS_PROMOCIONES
+-- MATRICULAS PROMOCIONES
 -- ======================================
 
 CREATE TABLE matriculas_promociones (
@@ -229,6 +228,7 @@ CREATE TABLE matriculas_promociones (
 
 CREATE TABLE asistencias (
     id_asistencia INT AUTO_INCREMENT PRIMARY KEY,
+
     id_alumno INT NOT NULL,
     fecha DATE NOT NULL,
 
@@ -250,6 +250,7 @@ CREATE TABLE asistencias (
 
 CREATE TABLE asistencias_practicantes (
     id_asistencia INT AUTO_INCREMENT PRIMARY KEY,
+
     id_practicante INT NOT NULL,
     fecha DATE NOT NULL,
 
@@ -270,6 +271,7 @@ CREATE TABLE asistencias_practicantes (
 -- ======================================
 
 CREATE TABLE planes_pago (
+
     id_plan INT AUTO_INCREMENT PRIMARY KEY,
 
     id_matricula INT NOT NULL,
@@ -277,6 +279,7 @@ CREATE TABLE planes_pago (
     monto_base DECIMAL(10,2) NOT NULL,
     tipo_descuento VARCHAR(50) DEFAULT 'Ninguno',
     porcentaje_descuento DECIMAL(5,2) DEFAULT 0,
+
     monto_final DECIMAL(10,2) NOT NULL,
 
     cantidad_cuotas INT NOT NULL,
@@ -284,40 +287,53 @@ CREATE TABLE planes_pago (
 
     fecha_inicio DATE,
     fecha_creacion DATE DEFAULT CURRENT_DATE,
+
     estado VARCHAR(50) DEFAULT 'Activo',
 
     FOREIGN KEY (id_matricula)
         REFERENCES matriculas(id_matricula)
 );
 
+CREATE INDEX idx_plan_matricula
+ON planes_pago(id_matricula);
+
 -- ======================================
 -- CUOTAS
 -- ======================================
 
 CREATE TABLE cuotas (
+
     id_cuota INT AUTO_INCREMENT PRIMARY KEY,
+
     id_plan INT NOT NULL,
     numero_cuota INT NOT NULL,
 
     monto_cuota DECIMAL(10,2) NOT NULL,
-    monto_pagado DECIMAL(10,2) DEFAULT 0,
+    monto_pagado DECIMAL(10,2) DEFAULT 0.00,
 
     fecha_vencimiento DATE,
     fecha_pago DATE,
+
     metodo_pago VARCHAR(50),
 
     dias_gracia INT DEFAULT 0,
     estado VARCHAR(50) DEFAULT 'Pendiente',
 
+    UNIQUE (id_plan, numero_cuota),
+
     FOREIGN KEY (id_plan)
         REFERENCES planes_pago(id_plan)
 );
+
+CREATE INDEX idx_cuotas_plan
+ON cuotas(id_plan);
 
 -- ======================================
 -- MOVIMIENTOS FINANCIEROS
 -- ======================================
 
 CREATE TABLE movimientos_financieros (
+
     id_movimiento INT AUTO_INCREMENT PRIMARY KEY,
 
     id_alumno INT NOT NULL,
@@ -325,9 +341,11 @@ CREATE TABLE movimientos_financieros (
     id_cuota INT,
 
     tipo_movimiento VARCHAR(50) NOT NULL,
+
     monto DECIMAL(10,2) NOT NULL,
 
     fecha DATE DEFAULT CURRENT_DATE,
+
     observacion TEXT,
 
     numero_boleta VARCHAR(50),
@@ -342,4 +360,5 @@ CREATE TABLE movimientos_financieros (
     FOREIGN KEY (id_cuota)
         REFERENCES cuotas(id_cuota)
 );
+
 
