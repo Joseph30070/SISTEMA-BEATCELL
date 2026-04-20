@@ -25,7 +25,8 @@ a.nombre AS alumno,
 a.dni,
 a.telefono,
 
-m.id_matricula
+m.id_matricula,
+1 AS tiene_plan
 
 FROM cuotas c
 
@@ -61,7 +62,11 @@ a.nombre AS alumno,
 a.dni,
 a.telefono,
 
-m.id_matricula
+m.id_matricula,
+CASE WHEN EXISTS (
+    SELECT 1 FROM planes_pago pp
+    WHERE pp.id_matricula = m.id_matricula
+) THEN 1 ELSE 0 END AS tiene_plan
 
 FROM matriculas m
 
