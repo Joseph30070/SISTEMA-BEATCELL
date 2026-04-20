@@ -22,16 +22,34 @@ try {
     }
 
     // =========================
-    // 1. CREAR GRUPO
+    // 1. VERIFICAR SI GRUPO EXISTE
     // =========================
-    $stmt = $pdo->prepare("
-        INSERT INTO grupos (id_curso, nombre_grupo)
-        VALUES (?, ?)
-    ");
+    $sql = "SELECT id_grupo 
+            FROM grupos 
+            WHERE nombre_grupo = ? 
+            AND id_curso = ?";
 
-    $stmt->execute([$id_curso, $nombre_grupo]);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$nombre_grupo, $id_curso]);
 
-    $id_grupo = $pdo->lastInsertId();
+    $grupo = $stmt->fetch();
+
+    if ($grupo) {
+
+        $id_grupo = $grupo['id_grupo'];
+
+    } else {
+
+        // Crear grupo nuevo
+        $sql = "INSERT INTO grupos 
+                (id_curso, nombre_grupo) 
+                VALUES (?, ?)";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$id_curso, $nombre_grupo]);
+
+        $id_grupo = $pdo->lastInsertId();
+    }
 
     // =========================
     // 2. INSERTAR HORARIOS ESPECIALES
@@ -47,7 +65,6 @@ try {
         $inicio = $hora_inicio[$dia] ?? null;
         $fin = $hora_fin[$dia] ?? null;
 
-        // validar que exista horario
         if ($inicio && $fin) {
 
             $stmt->execute([
@@ -56,13 +73,9 @@ try {
                 $inicio,
                 $fin
             ]);
-
         }
     }
 
-    // =========================
-    // OK
-    // =========================
     header("Location: ../public/asignar_cursos.php?success=Horario especial creado correctamente");
     exit;
 
