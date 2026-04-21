@@ -8,13 +8,15 @@ try {
 
 $pdo->beginTransaction();
 
-$id_cuota = $_POST['id_cuota'];
+$id_cuota     = $_POST['id_cuota'];
 $numero_cuota = $_POST['numero_cuota'];
+$metodo_pago  = $_POST['metodo_pago'];
+$fecha_pago   = $_POST['fecha_pago'] ?? date("Y-m-d");
 
-$metodo_pago = $_POST['metodo_pago'];
-
-$fecha_pago =
-$_POST['fecha_pago'] ?? date("Y-m-d");
+// monto_pagar: si viene del POST lo usa, sino paga el total pendiente
+$monto_pagar  = isset($_POST['monto_pagar']) && $_POST['monto_pagar'] > 0
+    ? floatval($_POST['monto_pagar'])
+    : null;
 
 /* =========================
    PAGO DE MATRÍCULA
@@ -22,128 +24,84 @@ $_POST['fecha_pago'] ?? date("Y-m-d");
 
 if ($numero_cuota == 0) {
 
-$sql = "
+    $sql = "
+        SELECT
+            m.monto_matricula,
+            m.monto_pagado,
+            m.id_matricula,
+            a.id_alumno
+        FROM matriculas m
+        INNER JOIN alumnos a ON m.id_alumno = a.id_alumno
+        WHERE m.id_matricula = ?
+    ";
 
-SELECT
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$id_cuota]);
+    $matricula = $stmt->fetch(PDO::FETCH_ASSOC);
 
-m.monto_matricula,
-m.monto_pagado,
-m.id_matricula,
-a.id_alumno
+    if (!$matricula) {
+        throw new Exception("Matrícula no encontrada");
+    }
 
-FROM matriculas m
+    $monto_restante = $matricula['monto_matricula'] - $matricula['monto_pagado'];
 
-INNER JOIN alumnos a
-ON m.id_alumno = a.id_alumno
+    if ($monto_restante <= 0) {
+        throw new Exception("La matrícula ya está pagada");
+    }
 
-WHERE m.id_matricula = ?
+    // Si no se especificó monto, paga el total restante
+    $monto_a_pagar = $monto_pagar ?? $monto_restante;
 
-";
+    if ($monto_a_pagar > $monto_restante) {
+        throw new Exception("El monto ingresado supera el saldo pendiente (S/ " . number_format($monto_restante, 2) . ")");
+    }
 
-$stmt = $pdo->prepare($sql);
+    $nuevo_pagado = $matricula['monto_pagado'] + $monto_a_pagar;
 
-$stmt->execute([$id_cuota]);
+    $estado = ($nuevo_pagado >= $matricula['monto_matricula'])
+        ? "Pagada"
+        : "Pendiente";
 
-$matricula =
-$stmt->fetch(PDO::FETCH_ASSOC);
+    // Actualizar matrícula
+    // Nota: si la matrícula queda pagada, también actualizamos estado a 'Activo'
+    // para no mezclar con el estado de pago
+    $sql = "
+        UPDATE matriculas
+        SET monto_pagado = ?, estado = 'Activo'
+        WHERE id_matricula = ?
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$nuevo_pagado, $id_cuota]);
 
-if (!$matricula) {
+    // Movimiento financiero
+    $sql = "
+        INSERT INTO movimientos_financieros (
+            id_alumno, id_matricula, id_cuota,
+            tipo_movimiento, monto, fecha, observacion
+        ) VALUES (
+            ?, ?, NULL,
+            'Pago de matrícula',
+            ?, ?,
+            ?
+        )
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        $matricula['id_alumno'],
+        $id_cuota,
+        $monto_a_pagar,
+        $fecha_pago,
+        $estado === "Pagada" ? "Matrícula pagada completa" : "Pago parcial de matrícula"
+    ]);
 
-throw new Exception(
-"Matrícula no encontrada"
-);
+    $pdo->commit();
 
-}
-
-$monto_restante =
-
-$matricula['monto_matricula']
--
-$matricula['monto_pagado'];
-
-if ($monto_restante <= 0) {
-
-throw new Exception(
-"La matrícula ya está pagada"
-);
-
-}
-
-$nuevo_pagado =
-
-$matricula['monto_pagado']
-+
-$monto_restante;
-
-$estado =
-
-($nuevo_pagado
->=
-$matricula['monto_matricula'])
-
-? "Pagada"
-: "Pendiente";
-
-/* Actualizar matrícula */
-
-$sql = "
-
-UPDATE matriculas
-
-SET
-
-monto_pagado = ?,
-estado = ?
-
-WHERE id_matricula = ?
-
-";
-
-$stmt = $pdo->prepare($sql);
-
-$stmt->execute([
-
-$nuevo_pagado,
-$estado,
-$id_cuota
-
-]);
-
-/* Movimiento financiero */
-
-$sql = "
-
-INSERT INTO movimientos_financieros (
-
-id_alumno,
-id_matricula,
-id_cuota,
-tipo_movimiento,
-monto,
-observacion
-
-)
-
-VALUES (
-
-?, ?, NULL,
-'Pago de matrícula',
-?,
-'Pago registrado'
-
-)
-
-";
-
-$stmt = $pdo->prepare($sql);
-
-$stmt->execute([
-
-$matricula['id_alumno'],
-$id_cuota,
-$monto_restante
-
-]);
+    echo json_encode([
+        "status"  => "success",
+        "estado"  => $estado,
+        "pagado"  => $nuevo_pagado,
+        "total"   => $matricula['monto_matricula']
+    ]);
 
 }
 
@@ -153,160 +111,112 @@ $monto_restante
 
 else {
 
-$sql = "
+    $sql = "
+        SELECT
+            c.monto_cuota,
+            c.monto_pagado,
+            a.id_alumno,
+            m.id_matricula
+        FROM cuotas c
+        INNER JOIN planes_pago p  ON c.id_plan = p.id_plan
+        INNER JOIN matriculas m   ON p.id_matricula = m.id_matricula
+        INNER JOIN alumnos a      ON m.id_alumno = a.id_alumno
+        WHERE c.id_cuota = ?
+    ";
 
-SELECT
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$id_cuota]);
+    $cuota = $stmt->fetch(PDO::FETCH_ASSOC);
 
-c.monto_cuota,
-c.monto_pagado,
+    if (!$cuota) {
+        throw new Exception("Cuota no encontrada");
+    }
 
-a.id_alumno,
-m.id_matricula
+    $monto_restante = $cuota['monto_cuota'] - $cuota['monto_pagado'];
 
-FROM cuotas c
+    if ($monto_restante <= 0) {
+        throw new Exception("Esta cuota ya está pagada");
+    }
 
-INNER JOIN planes_pago p
-ON c.id_plan = p.id_plan
+    // Si no se especificó monto, paga el total restante
+    $monto_a_pagar = $monto_pagar ?? $monto_restante;
 
-INNER JOIN matriculas m
-ON p.id_matricula = m.id_matricula
+    if ($monto_a_pagar > $monto_restante) {
+        throw new Exception("El monto ingresado supera el saldo pendiente (S/ " . number_format($monto_restante, 2) . ")");
+    }
 
-INNER JOIN alumnos a
-ON m.id_alumno = a.id_alumno
+    $nuevo_pagado = $cuota['monto_pagado'] + $monto_a_pagar;
 
-WHERE c.id_cuota = ?
+    // Estado: Pagada / Parcial / Pendiente
+    if ($nuevo_pagado >= $cuota['monto_cuota']) {
+        $estado = "Pagada";
+    } elseif ($nuevo_pagado > 0) {
+        $estado = "Parcial";
+    } else {
+        $estado = "Pendiente";
+    }
 
-";
+    // Actualizar cuota
+    $sql = "
+        UPDATE cuotas
+        SET
+            monto_pagado = ?,
+            fecha_pago   = ?,
+            metodo_pago  = ?,
+            estado       = ?
+        WHERE id_cuota = ?
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        $nuevo_pagado,
+        $fecha_pago,
+        $metodo_pago,
+        $estado,
+        $id_cuota
+    ]);
 
-$stmt = $pdo->prepare($sql);
+    // Movimiento financiero
+    $sql = "
+        INSERT INTO movimientos_financieros (
+            id_alumno, id_matricula, id_cuota,
+            tipo_movimiento, monto, fecha, observacion
+        ) VALUES (
+            ?, ?, ?,
+            'Pago de cuota',
+            ?, ?,
+            ?
+        )
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        $cuota['id_alumno'],
+        $cuota['id_matricula'],
+        $id_cuota,
+        $monto_a_pagar,
+        $fecha_pago,
+        $estado === "Pagada"  ? "Cuota pagada completa" :
+        ($estado === "Parcial" ? "Pago parcial de cuota" : "Pago registrado")
+    ]);
 
-$stmt->execute([$id_cuota]);
+    $pdo->commit();
 
-$cuota =
-$stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$cuota) {
-
-throw new Exception(
-"Cuota no encontrada"
-);
-
-}
-
-$monto_restante =
-
-$cuota['monto_cuota']
--
-$cuota['monto_pagado'];
-
-if ($monto_restante <= 0) {
-
-throw new Exception(
-"Esta cuota ya está pagada"
-);
-
-}
-
-$nuevo_pagado =
-
-$cuota['monto_pagado']
-+
-$monto_restante;
-
-$estado =
-
-($nuevo_pagado
->=
-$cuota['monto_cuota'])
-
-? "Pagada"
-: "Pendiente";
-
-/* Actualizar cuota */
-
-$sql = "
-
-UPDATE cuotas
-
-SET
-
-monto_pagado = ?,
-fecha_pago = ?,
-metodo_pago = ?,
-estado = ?
-
-WHERE id_cuota = ?
-
-";
-
-$stmt = $pdo->prepare($sql);
-
-$stmt->execute([
-
-$nuevo_pagado,
-$fecha_pago,
-$metodo_pago,
-$estado,
-$id_cuota
-
-]);
-
-/* Movimiento financiero */
-
-$sql = "
-
-INSERT INTO movimientos_financieros (
-
-id_alumno,
-id_matricula,
-id_cuota,
-tipo_movimiento,
-monto,
-observacion
-
-)
-
-VALUES (
-
-?, ?, ?,
-'Pago de cuota',
-?,
-'Pago registrado'
-
-)
-
-";
-
-$stmt = $pdo->prepare($sql);
-
-$stmt->execute([
-
-$cuota['id_alumno'],
-$cuota['id_matricula'],
-$id_cuota,
-$monto_restante
-
-]);
+    echo json_encode([
+        "status"   => "success",
+        "estado"   => $estado,
+        "pagado"   => $nuevo_pagado,
+        "total"    => $cuota['monto_cuota'],
+        "restante" => $cuota['monto_cuota'] - $nuevo_pagado
+    ]);
 
 }
-
-$pdo->commit();
-
-echo json_encode([
-
-"status" => "success"
-
-]);
 
 } catch (Exception $e) {
 
 $pdo->rollBack();
 
 echo json_encode([
-
-"status" => "error",
-"message" => $e->getMessage()
-
+    "status"  => "error",
+    "message" => $e->getMessage()
 ]);
 
 }

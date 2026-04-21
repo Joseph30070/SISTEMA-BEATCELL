@@ -12,6 +12,7 @@ SELECT
 
 m.id_matricula,
 a.nombre AS alumno,
+a.tipo_ciclo,
 
 m.monto_matricula,
 m.monto_pagado,
@@ -40,6 +41,11 @@ WHERE
 m.estado = 'Activo'
 AND
 m.monto_pagado < m.monto_matricula
+AND
+NOT EXISTS (
+    SELECT 1 FROM planes_pago pp
+    WHERE pp.id_matricula = m.id_matricula
+)
 
 ORDER BY fecha_vencimiento ASC
 

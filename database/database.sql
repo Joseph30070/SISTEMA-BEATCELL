@@ -223,6 +223,26 @@ CREATE TABLE matriculas_promociones (
 );
 
 -- ======================================
+-- INSERTAR PROMOCIÓN "Inscripción Doble"
+-- Ejecutar en beatcell_db
+-- ======================================
+ 
+INSERT INTO promociones (
+    nombre_promocion,
+    descripcion,
+    fecha_inicio,
+    fecha_fin,
+    activa
+) VALUES (
+    'Inscripción Doble',
+    'Aplica cuando un alumno se inscribe en dos cursos diferentes, o cuando dos alumnos se matriculan a la vez. Ciclo Normal: S/100/mes (en vez de S/150). Ciclo Acelerado: S/200/mes (en vez de S/250).',
+    CURDATE(),
+    NULL,
+    TRUE
+);
+ 
+
+-- ======================================
 -- ASISTENCIAS ALUMNOS
 -- ======================================
 
