@@ -7,7 +7,7 @@ $pdo = require __DIR__ . '/../config/db.php';
 try {
 
     // =========================
-    // DATOS PRINCIPALES
+    // 1. OBTENER DATOS
     // =========================
     $id_curso = $_POST['id_curso'] ?? null;
     $nombre_grupo = trim($_POST['nombre_grupo'] ?? '');
@@ -22,44 +22,52 @@ try {
     }
 
     // =========================
-    // 1. VERIFICAR SI GRUPO EXISTE
+    // 2. VERIFICAR O CREAR GRUPO
     // =========================
-    $sql = "SELECT id_grupo 
-            FROM grupos 
-            WHERE nombre_grupo = ? 
-            AND id_curso = ?";
-
-    $stmt = $pdo->prepare($sql);
+    $stmt = $pdo->prepare("
+        SELECT id_grupo 
+        FROM grupos 
+        WHERE nombre_grupo = ? AND id_curso = ?
+    ");
     $stmt->execute([$nombre_grupo, $id_curso]);
 
     $grupo = $stmt->fetch();
 
     if ($grupo) {
-
         $id_grupo = $grupo['id_grupo'];
-
     } else {
-
-        // Crear grupo nuevo
-        $sql = "INSERT INTO grupos 
-                (id_curso, nombre_grupo) 
-                VALUES (?, ?)";
-
-        $stmt = $pdo->prepare($sql);
+        $stmt = $pdo->prepare("
+            INSERT INTO grupos (id_curso, nombre_grupo) 
+            VALUES (?, ?)
+        ");
         $stmt->execute([$id_curso, $nombre_grupo]);
-
         $id_grupo = $pdo->lastInsertId();
     }
 
     // =========================
-    // 2. INSERTAR HORARIOS ESPECIALES
+    // 3. PREPARAR QUERIES (OPTIMIZADO)
     // =========================
-    $stmt = $pdo->prepare("
+
+    // 🔍 Validar duplicados
+    $stmtCheck = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM horarios_especiales 
+        WHERE id_grupo = ?
+        AND dia_semana = ?
+        AND hora_inicio = ?
+        AND hora_fin = ?
+    ");
+
+    // 💾 Insertar
+    $stmtInsert = $pdo->prepare("
         INSERT INTO horarios_especiales
         (id_grupo, dia_semana, hora_inicio, hora_fin)
         VALUES (?, ?, ?, ?)
     ");
 
+    // =========================
+    // 4. INSERTAR SIN DUPLICADOS
+    // =========================
     foreach ($dias as $dia) {
 
         $inicio = $hora_inicio[$dia] ?? null;
@@ -67,16 +75,33 @@ try {
 
         if ($inicio && $fin) {
 
-            $stmt->execute([
+            // 🔍 Verificar si ya existe
+            $stmtCheck->execute([
                 $id_grupo,
                 $dia,
                 $inicio,
                 $fin
             ]);
+
+            $existe = $stmtCheck->fetchColumn();
+
+            // ✅ Solo insertar si NO existe
+            if (!$existe) {
+
+                $stmtInsert->execute([
+                    $id_grupo,
+                    $dia,
+                    $inicio,
+                    $fin
+                ]);
+            }
         }
     }
 
-    header("Location: ../public/asignar_cursos.php?success=Horario especial creado correctamente");
+    // =========================
+    // 5. RESPUESTA
+    // =========================
+    header("Location: ../public/asignar_cursos.php?success=Horario especial guardado correctamente");
     exit;
 
 } catch (Exception $e) {

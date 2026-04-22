@@ -492,11 +492,20 @@ function cargarGrupos() {
           op.textContent =
             g.nombre_grupo;
 
-          op.dataset.dias =
-            g.dias;
+     // convertir horarios a texto
+          let horariosTexto = g.horarios
+            .map(h => `${h.hora_inicio} - ${h.hora_fin}`)
+            .join(' | ');
 
-          op.dataset.hora =
-            `${g.hora_inicio.substring(0,5)} - ${g.hora_fin.substring(0,5)}`;
+          let diasTexto = g.horarios
+            .map(h => h.dia)
+            .join(' / ');
+
+          op.dataset.dias = diasTexto;
+          op.dataset.hora = horariosTexto;
+
+      // 🔥 guardar horarios completos (IMPORTANTE)
+          op.dataset.horarios = JSON.stringify(g.horarios);
 
           selectGrupo.appendChild(op);
 
@@ -576,8 +585,12 @@ function cargarAlumnos() {
 
   let grupo = gruposData.find(g => g.id_grupo == grupoId);
   if (grupo) {
-    document.getElementById('infoGrupo').innerHTML =
-      `<span class="badge">${grupo.nombre_grupo}</span> | ${grupo.dias} | ${grupo.hora_inicio.substring(0,5)} - ${grupo.hora_fin.substring(0,5)}`;
+    let horariosTexto = grupo.horarios
+  .map(h => `${h.dia} ${h.hora_inicio}-${h.hora_fin}`)
+  .join('<br>');
+
+document.getElementById('infoGrupo').innerHTML =
+  `<span class="badge">${grupo.nombre_grupo}</span><br>${horariosTexto}`;
   }
 
   fetch(`../process/get_alumnos.php?id_grupo=${grupoId}`)
@@ -800,8 +813,38 @@ function validarHorarioSeleccionado(){
   let horaActual = ahora.getHours().toString().padStart(2,'0') + ':' +
                    ahora.getMinutes().toString().padStart(2,'0');
 
-  let inicio = grupo.hora_inicio ? grupo.hora_inicio.substring(0,5) : '00:00';
-  let fin = grupo.hora_fin.substring(0,5);
+  function validarHorarioSeleccionado(){
+
+  let grupoId = document.getElementById('grupo').value;
+  if(!grupoId) return true;
+
+  let grupo = gruposData.find(g => g.id_grupo == grupoId);
+  if(!grupo) return true;
+
+  let ahora = new Date();
+  let horaActual =
+    ahora.getHours().toString().padStart(2,'0') + ':' +
+    ahora.getMinutes().toString().padStart(2,'0');
+
+  let diaActual = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
+  diaActual = diaActual.charAt(0).toUpperCase() + diaActual.slice(1);
+
+  // 🔥 validar contra TODOS los horarios
+  let valido = grupo.horarios.some(h => {
+
+    if(h.dia !== diaActual) return false;
+
+    return horaActual >= h.hora_inicio && horaActual <= h.hora_fin;
+
+  });
+
+  if(!valido){
+    alert("⚠ No estás dentro del horario de clase");
+    return false;
+  }
+
+  return true;
+}
 
   if(horaActual < inicio){
     alert("⏳ La clase aún no empieza");
@@ -819,36 +862,69 @@ function validarHorarioSeleccionado(){
 
 function cargarHorariosHoy(){
 
-  fetch('../process/get_horarios.php')
+  let fecha = document.getElementById('fecha')?.value;
+
+  fetch(`../process/get_horarios.php?fecha=${fecha}`)
   .then(res => res.json())
   .then(data => {
 
+    let contenedor = {};
+
+    // AGRUPAR
+    data.forEach(h => {
+
+      let key = `${h.curso} - ${h.grupo}`;
+
+      if(!contenedor[key]){
+        contenedor[key] = {
+          normal: null,
+          especiales: []
+        };
+      }
+
+      if(h.tipo === "NORMAL"){
+        contenedor[key].normal = h;
+      } else {
+        contenedor[key].especiales.push(h);
+      }
+
+    });
+
+    // RENDER
     let html = '';
 
-    if(data.length === 0){
-      html = '<span class="text-gray-400">No hay horarios registrados</span>';
-    } else {
+    Object.keys(contenedor).forEach(key => {
 
-      data.forEach(h => {
+      let grupo = contenedor[key];
 
+      html += `
+      <div style="padding:10px;border-bottom:1px solid #eee;">
+        <strong style="color:#0f766e;">${key}</strong><br>
+      `;
+
+      if(grupo.normal){
         html += `
-        <div style="padding:8px;border-bottom:1px solid #eee;">
-          <strong style="color:#0f766e;">${h.curso}</strong> - ${h.grupo}<br>
-          <span class="text-gray-500">
-            ${h.dias || 'Sin días'} | ${h.hora_inicio} - ${h.hora_fin}
-          </span>
-        </div>`;
+          <div>• Normal: ${grupo.normal.hora_inicio} - ${grupo.normal.hora_fin}</div>
+        `;
+      }
 
+      grupo.especiales.forEach(e => {
+        html += `
+          <div>• Especial (${e.dias}): ${e.hora_inicio} - ${e.hora_fin}</div>
+        `;
       });
 
+      html += `</div>`;
+    });
+
+    if(html === ''){
+      html = '<span class="text-gray-400">No hay horarios hoy</span>';
     }
 
     document.getElementById('horariosHoy').innerHTML = html;
 
   })
-  .catch(err => {
-    console.error(err);
-  });
+  .catch(err => console.error(err));
 
 }
 
@@ -1287,11 +1363,6 @@ function actualizarStatsHistorial(data){
 
 }
 
-
-
-
-
-
 // =========================
 // EVENTOS DOM CONTENT LOADED
 // =========================
@@ -1301,49 +1372,46 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================
   // CARGAS INICIALES
   // =========================
-
-    filtrarHistorial();
-    cargarHorariosHoy();
-    cargarGraficaAsistencia();
-    cargarResumenSemana();
-    cargarGraficaMensual(); 
-    cargarResumenMensual();
+  filtrarHistorial();
+  cargarHorariosHoy();
+  cargarGraficaAsistencia();
+  cargarResumenSemana();
+  cargarGraficaMensual(); 
+  cargarResumenMensual();
 
   // =========================
   // EVENTOS
   // =========================
 
-      // Filtro por fecha
-      document
-        .getElementById('filtroFecha')
-        .addEventListener(
-          'change',
-          filtrarHistorial
-        );
+  // 🔥 Fecha (horarios dinámicos)
+  const fechaInput = document.getElementById('fecha');
+  if (fechaInput) {
+    fechaInput.addEventListener('change', cargarHorariosHoy);
+  }
 
-      // Filtro por curso
-      document
-        .getElementById('filtroCurso')
-        .addEventListener(
-          'change',
-          cargarGruposFiltro
-        );
+  // Filtro historial por fecha
+  const filtroFecha = document.getElementById('filtroFecha');
+  if (filtroFecha) {
+    filtroFecha.addEventListener('change', filtrarHistorial);
+  }
+  
+  // Filtro por curso
+  const filtroCurso = document.getElementById('filtroCurso');
+  if (filtroCurso) {
+    filtroCurso.addEventListener('change', cargarGruposFiltro);
+  }
 
-      // 🔥 Filtro por grupo (FALTABA ESTE)
-      document
-        .getElementById('filtroGrupo')
-        .addEventListener(
-          'change',
-          filtrarHistorial
-        );
+  // Filtro por grupo
+  const filtroGrupo = document.getElementById('filtroGrupo');
+  if (filtroGrupo) {
+    filtroGrupo.addEventListener('change', filtrarHistorial);
+  }
 
-      // Selector de semana
-      document
-        .getElementById('selectorSemana')
-        .addEventListener(
-          'change',
-          cargarResumenSemana
-        );
+  // Selector de semana
+  const selectorSemana = document.getElementById('selectorSemana');
+  if (selectorSemana) {
+    selectorSemana.addEventListener('change', cargarResumenSemana);
+  }
 
 });
 
