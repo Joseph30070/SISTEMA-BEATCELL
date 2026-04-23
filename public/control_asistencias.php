@@ -11,6 +11,10 @@ $pdo = require __DIR__ . '/../config/db.php';
 $stmt = $pdo->query("SELECT id_curso, nombre_curso FROM cursos ORDER BY nombre_curso ASC");
 $cursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Obtener carreras
+$stmt = $pdo->query("SELECT id_carrera, nombre_carrera FROM carreras ORDER BY nombre_carrera ASC");
+$carreras = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // =========================
 // HISTORIAL
 // =========================
@@ -153,6 +157,12 @@ ob_start();
         Registrar Asistencia
     </button>
 
+    <button id="tab-practicantes"
+        class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:bg-gray-100"
+        onclick="mostrarTab('practicantes')">
+        Practicantes
+    </button>
+
     <button id="tab-historial"
         class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:bg-gray-100"
         onclick="mostrarTab('historial')">
@@ -228,6 +238,87 @@ ob_start();
 
     </table>
 
+  </div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- TAB PRACTICANTES -->
+<!-- ========================= -->
+<div id="contenido-practicantes" class="tab-content hidden">
+
+  <div class="card">
+
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold">Seleccionar Practicante</h3>
+      <button id="btnTogglePracticanteFiltro" type="button" class="bg-teal-600 text-white px-4 py-2 rounded">
+        Mostrar filtro
+      </button>
+    </div>
+
+    <div class="grid">
+      <div>
+        <label>Fecha</label>
+        <input type="date" id="fechaPracticantes" class="border px-3 py-2 rounded w-full" value="<?= date('Y-m-d') ?>">
+      </div>
+
+      <div>
+        <label>Carrera</label>
+        <select id="filtroCarreraPracticantes" class="border px-3 py-2 rounded w-full">
+          <option value="">-- Todas las carreras --</option>
+          <?php foreach($carreras as $c): ?>
+            <option value="<?= $c['id_carrera'] ?>">
+              <?= htmlspecialchars($c['nombre_carrera']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+    </div>
+
+    <div id="panelFiltrosPracticantes" class="hidden mt-4 p-4 bg-gray-50 border border-gray-200 rounded">
+      <div class="grid">
+        <div>
+          <label>Nombre</label>
+          <input type="text" id="filtroNombrePracticantes" class="border px-3 py-2 rounded w-full" placeholder="Buscar por nombre">
+        </div>
+        <div>
+          <label>DNI</label>
+          <input type="text" id="filtroDniPracticantes" class="border px-3 py-2 rounded w-full" placeholder="Buscar por DNI">
+        </div>
+      </div>
+    </div>
+
+    <div id="infoPracticantes" class="mt-4 text-sm text-gray-600">Todos los practicantes activos</div>
+  </div>
+
+  <div class="grid">
+    <div class="card stat">Presentes<div id="presentesPracticantes">0</div></div>
+    <div class="card stat">Ausentes<div id="ausentesPracticantes">0</div></div>
+    <div class="card stat">Porcentaje<div id="porcentajePracticantes">0%</div></div>
+  </div>
+
+  <div class="card">
+    <h3 class="font-semibold mb-4">Practicantes</h3>
+
+    <div style="overflow-x:auto;">
+      <table class="shadow-sm" style="min-width:1100px;">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Alumno</th>
+            <th>DNI</th>
+            <th>Teléfono</th>
+            <th>Carrera</th>
+            <th>Horario</th>
+            <th class="center">Acción</th>
+            <th class="center">Estado</th>
+            <th class="center">Salida</th>
+          </tr>
+        </thead>
+        <tbody id="tablaPracticantes"></tbody>
+      </table>
+    </div>
   </div>
 
 </div>
@@ -468,6 +559,7 @@ function mostrarTab(tab) {
 // VARIABLES
 // =========================
 let alumnosData = [];
+let practicantesData = [];
 let gruposData = [];
 let historialData = [];
 let historialPage = 1;
@@ -657,6 +749,140 @@ function renderTabla() {
 
 }
 
+function cargarPracticantes() {
+
+  let fecha = document.getElementById('fechaPracticantes').value;
+
+  if (!fecha) {
+    fecha = new Date().toISOString().slice(0, 10);
+  }
+
+  fetch(`../process/get_practicantes.php?fecha=${fecha}`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) {
+        alert(data.error || 'Error al cargar practicantes');
+        return;
+      }
+
+      practicantesData = data.practicantes;
+      renderTablaPracticantes();
+    });
+}
+
+function renderTablaPracticantes() {
+
+    let tabla = document.getElementById("tablaPracticantes");
+    let filtroCarrera = document.getElementById('filtroCarreraPracticantes')?.value;
+    let filtroNombre = document.getElementById('filtroNombrePracticantes')?.value.trim().toLowerCase();
+    let filtroDni = document.getElementById('filtroDniPracticantes')?.value.trim().toLowerCase();
+
+    let listaFiltrada = practicantesData.filter(practicante => {
+      if (filtroCarrera && String(practicante.id_carrera) !== filtroCarrera) {
+        return false;
+      }
+
+      if (filtroNombre && !practicante.nombre.toLowerCase().includes(filtroNombre)) {
+        return false;
+      }
+
+      if (filtroDni && !String(practicante.dni).toLowerCase().includes(filtroDni)) {
+        return false;
+      }
+
+      return true;
+    });
+
+    tabla.innerHTML = "";
+
+    if (listaFiltrada.length === 0) {
+      tabla.innerHTML = '<tr><td colspan="9" class="center">No hay practicantes registrados</td></tr>';
+      actualizarEstadisticasPracticantes();
+      return;
+    }
+
+    listaFiltrada.forEach((practicante, index) => {
+
+        tabla.innerHTML += crearFilaPracticante(
+            practicante,
+            index
+        );
+
+    });
+
+    actualizarEstadisticasPracticantes();
+
+}
+
+function crearFilaPracticante(practicante, index) {
+
+    let estado = practicante.estado ?? "Pendiente";
+
+    let color = "gray";
+
+    if (estado === "Asistió")
+        color = "green";
+
+    if (estado === "Ausente")
+        color = "red";
+
+    return `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${practicante.nombre}</td>
+            <td>${practicante.dni}</td>
+            <td>${practicante.telefono ?? ''}</td>
+            <td>${practicante.carrera ?? '-'}</td>
+            <td>${practicante.horario ?? '-'}</td>
+            <td class="center">
+                <button 
+                    class="bg-green-500 text-white px-2 py-1 rounded"
+                    onclick="marcarAsistencia(${practicante.id_asistencia}, 'Asistió', 'practicante')">
+                    Asistió
+                </button>
+                <button 
+                    class="bg-red-500 text-white px-2 py-1 rounded"
+                    onclick="marcarAsistencia(${practicante.id_asistencia}, 'Ausente', 'practicante')">
+                    Ausente
+                </button>
+            </td>
+            <td class="center">
+                <span 
+                    id="estado-practicante-${practicante.id_asistencia}"
+                    class="px-2 py-1 rounded text-white bg-${color}-500">
+                    ${estado}
+                </span>
+            </td>
+            <td class="center">
+                ${practicante.hora_salida ?? '--'}
+            </td>
+        </tr>
+    `;
+}
+
+function actualizarEstadisticasPracticantes() {
+
+    let estados = document.querySelectorAll("[id^='estado-practicante-']");
+
+    let presentes = 0;
+    let ausentes = 0;
+
+    estados.forEach(e => {
+        if (e.innerText === "Asistió")
+            presentes++;
+
+        if (e.innerText === "Ausente")
+            ausentes++;
+    });
+
+    let total = estados.length;
+    let porcentaje = total > 0 ? Math.round((presentes / total) * 100) : 0;
+
+    document.getElementById("presentesPracticantes").innerText = presentes;
+    document.getElementById("ausentesPracticantes").innerText = ausentes;
+    document.getElementById("porcentajePracticantes").innerText = porcentaje + "%";
+}
+
 
 // =========================
 // marcar asistencia
@@ -772,10 +998,19 @@ function actualizarEstadisticas() {
 // MARCAR ASISTENCIA
 // =========================
 
-function marcarAsistencia(id_asistencia, estado) {
+function marcarAsistencia(id_asistencia, estado, tipo = 'alumno') {
 
     console.log("ID:", id_asistencia);
     console.log("Estado:", estado);
+    console.log("Tipo:", tipo);
+
+    let body =
+        "id_asistencia=" + id_asistencia +
+        "&estado=" + estado;
+
+    if (tipo === 'practicante') {
+        body += "&tipo=practicante";
+    }
 
     fetch("../process/actualizar_estado.php", {
 
@@ -785,9 +1020,7 @@ function marcarAsistencia(id_asistencia, estado) {
             "Content-Type": "application/x-www-form-urlencoded"
         },
 
-        body:
-            "id_asistencia=" + id_asistencia +
-            "&estado=" + estado
+        body: body
 
     })
     .then(res => res.json())
@@ -796,10 +1029,11 @@ function marcarAsistencia(id_asistencia, estado) {
 
         if (data.success) {
 
-            let badge =
-                document.getElementById(
-                    "estado-" + id_asistencia
-                );
+            let badge = document.getElementById(
+                tipo === 'practicante'
+                ? "estado-practicante-" + id_asistencia
+                : "estado-" + id_asistencia
+            );
 
             badge.innerText = estado;
 
@@ -817,7 +1051,11 @@ function marcarAsistencia(id_asistencia, estado) {
 
             }
 
-            actualizarEstadisticas();
+            if (tipo === 'practicante') {
+                actualizarEstadisticasPracticantes();
+            } else {
+                actualizarEstadisticas();
+            }
 
         } else {
 
@@ -1490,6 +1728,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cargarResumenSemana();
   cargarGraficaMensual();
   cargarResumenMensual();
+  cargarPracticantes();
 
   // =========================
   // EVENTOS
@@ -1499,6 +1738,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const fechaInput = document.getElementById('fecha');
   if (fechaInput) {
     fechaInput.addEventListener('change', cargarHorariosHoy);
+  }
+
+  const fechaPracticantes = document.getElementById('fechaPracticantes');
+  if (fechaPracticantes) {
+    fechaPracticantes.addEventListener('change', cargarPracticantes);
+  }
+
+  const filtroCarreraPracticantes = document.getElementById('filtroCarreraPracticantes');
+  if (filtroCarreraPracticantes) {
+    filtroCarreraPracticantes.addEventListener('change', renderTablaPracticantes);
+  }
+
+  const filtroNombrePracticantes = document.getElementById('filtroNombrePracticantes');
+  if (filtroNombrePracticantes) {
+    filtroNombrePracticantes.addEventListener('input', renderTablaPracticantes);
+  }
+
+  const filtroDniPracticantes = document.getElementById('filtroDniPracticantes');
+  if (filtroDniPracticantes) {
+    filtroDniPracticantes.addEventListener('input', renderTablaPracticantes);
+  }
+
+  const btnTogglePracticanteFiltro = document.getElementById('btnTogglePracticanteFiltro');
+  if (btnTogglePracticanteFiltro) {
+    btnTogglePracticanteFiltro.addEventListener('click', function() {
+      const panel = document.getElementById('panelFiltrosPracticantes');
+      if (!panel) return;
+      panel.classList.toggle('hidden');
+      this.innerText = panel.classList.contains('hidden') ? 'Mostrar filtro' : 'Ocultar filtro';
+    });
   }
 
   // Filtro historial por fecha

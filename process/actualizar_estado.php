@@ -25,6 +25,7 @@ try {
 
 $id_asistencia = $_POST['id_asistencia'] ?? null;
 $estado = $_POST['estado'] ?? null;
+$tipo = $_POST['tipo'] ?? 'alumno';
 
 if (!$id_asistencia || !$estado) {
 
@@ -33,6 +34,11 @@ if (!$id_asistencia || !$estado) {
         "message" => "Datos incompletos"
     ]);
     exit;
+}
+
+$tabla = 'asistencias';
+if ($tipo === 'practicante') {
+    $tabla = 'asistencias_practicantes';
 }
 
 // ======================================
@@ -44,7 +50,7 @@ try {
     if ($estado === "Asistió") {
 
         $sql = "
-            UPDATE asistencias
+            UPDATE {$tabla}
             SET 
                 estado = :estado,
                 hora_entrada = NOW()
@@ -54,7 +60,7 @@ try {
     } else {
 
         $sql = "
-            UPDATE asistencias
+            UPDATE {$tabla}
             SET 
                 estado = :estado
             WHERE id_asistencia = :id
