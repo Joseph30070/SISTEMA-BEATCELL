@@ -60,7 +60,26 @@ CREATE TABLE grupos (
 );
 
 -- ======================================
+-- NUEVA TABLA: GRUPO HORARIOS
+-- (Agregada por tu compañero)
+-- ======================================
+
+CREATE TABLE grupo_horarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_grupo INT NOT NULL,
+    dia_semana VARCHAR(20) NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+
+    KEY idx_id_grupo (id_grupo),
+
+    FOREIGN KEY (id_grupo)
+        REFERENCES grupos(id_grupo)
+);
+
+-- ======================================
 -- HORARIOS ESPECIALES
+-- (Se agregó restricción UNIQUE)
 -- ======================================
 
 CREATE TABLE horarios_especiales (
@@ -71,6 +90,8 @@ CREATE TABLE horarios_especiales (
     dia_semana VARCHAR(20) NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
+
+    UNIQUE (id_grupo, dia_semana, hora_inicio, hora_fin),
 
     FOREIGN KEY (id_grupo)
         REFERENCES grupos(id_grupo)
@@ -224,7 +245,6 @@ CREATE TABLE matriculas_promociones (
 
 -- ======================================
 -- INSERTAR PROMOCIÓN "Inscripción Doble"
--- Ejecutar en beatcell_db
 -- ======================================
  
 INSERT INTO promociones (
@@ -240,7 +260,6 @@ INSERT INTO promociones (
     NULL,
     TRUE
 );
- 
 
 -- ======================================
 -- ASISTENCIAS ALUMNOS
@@ -380,5 +399,6 @@ CREATE TABLE movimientos_financieros (
     FOREIGN KEY (id_cuota)
         REFERENCES cuotas(id_cuota)
 );
+
 
 

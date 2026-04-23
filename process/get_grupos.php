@@ -16,68 +16,20 @@ try {
     }
 
     // =========================
-    // Día actual en español
-    // =========================
-    $dias_es = [
-        'Monday' => 'Lunes',
-        'Tuesday' => 'Martes',
-        'Wednesday' => 'Miércoles',
-        'Thursday' => 'Jueves',
-        'Friday' => 'Viernes',
-        'Saturday' => 'Sábado',
-        'Sunday' => 'Domingo'
-    ];
-
-    $hoy = $dias_es[date('l')];
-
-    // =========================
-    // NUEVO QUERY (MODELO PROFESIONAL)
+    // Traer todos los grupos del curso
     // =========================
     $stmt = $pdo->prepare("
         SELECT 
             g.id_grupo,
-            g.nombre_grupo,
-            gh.dia_semana,
-            TIME_FORMAT(gh.hora_inicio, '%H:%i') AS hora_inicio,
-            TIME_FORMAT(gh.hora_fin, '%H:%i') AS hora_fin
+            g.nombre_grupo
         FROM grupos g
-        INNER JOIN grupo_horarios gh 
-            ON gh.id_grupo = g.id_grupo
         WHERE g.id_curso = ?
-        AND gh.dia_semana = ?
-        ORDER BY g.nombre_grupo ASC, gh.hora_inicio ASC
+        ORDER BY g.nombre_grupo ASC
     ");
 
-    $stmt->execute([$id_curso, $hoy]);
+    $stmt->execute([$id_curso]);
 
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // =========================
-    // AGRUPAR RESULTADOS
-    // =========================
-    $grupos = [];
-
-    foreach ($result as $row) {
-
-        $id = $row['id_grupo'];
-
-        if (!isset($grupos[$id])) {
-            $grupos[$id] = [
-                'id_grupo' => $id,
-                'nombre_grupo' => $row['nombre_grupo'],
-                'horarios' => []
-            ];
-        }
-
-        $grupos[$id]['horarios'][] = [
-            'dia' => $row['dia_semana'],
-            'hora_inicio' => $row['hora_inicio'],
-            'hora_fin' => $row['hora_fin']
-        ];
-    }
-
-    // Reindexar array
-    $grupos = array_values($grupos);
+    $grupos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
         'success' => true,

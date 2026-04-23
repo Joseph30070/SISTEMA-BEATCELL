@@ -561,7 +561,6 @@ function cargarGrupos(idCurso, groupSelectId = 'id_grupo', horarioInputId = 'hor
                     const option = document.createElement('option');
                     option.value = grupo.id_grupo;
                     option.textContent = grupo.nombre_grupo;
-                    option.dataset.horario = `${grupo.hora_inicio.substring(0, 5)} - ${grupo.hora_fin.substring(0, 5)}`;
                     selectGrupo.appendChild(option);
                 });
             } else {
