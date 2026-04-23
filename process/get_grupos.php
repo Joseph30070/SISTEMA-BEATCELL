@@ -21,7 +21,10 @@ try {
     $stmt = $pdo->prepare("
         SELECT 
             g.id_grupo,
-            g.nombre_grupo
+            g.nombre_grupo,
+            g.dias,
+            TIME_FORMAT(g.hora_inicio, '%H:%i') AS hora_inicio,
+            TIME_FORMAT(g.hora_fin, '%H:%i') AS hora_fin
         FROM grupos g
         WHERE g.id_curso = ?
         ORDER BY g.nombre_grupo ASC
@@ -30,6 +33,58 @@ try {
     $stmt->execute([$id_curso]);
 
     $grupos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmtEspecial = $pdo->prepare("
+        SELECT
+            dia_semana AS dia,
+            TIME_FORMAT(hora_inicio, '%H:%i') AS hora_inicio,
+            TIME_FORMAT(hora_fin, '%H:%i') AS hora_fin
+        FROM horarios_especiales
+        WHERE id_grupo = ?
+        ORDER BY dia_semana
+    ");
+
+    $stmtGrupoHorarios = $pdo->prepare("
+        SELECT
+            dia_semana AS dia,
+            TIME_FORMAT(hora_inicio, '%H:%i') AS hora_inicio,
+            TIME_FORMAT(hora_fin, '%H:%i') AS hora_fin
+        FROM grupo_horarios
+        WHERE id_grupo = ?
+        ORDER BY dia_semana
+    ");
+
+    foreach ($grupos as &$grupo) {
+
+        $horarios = [];
+
+        $stmtEspecial->execute([$grupo['id_grupo']]);
+        $horarios = $stmtEspecial->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!$horarios) {
+            $stmtGrupoHorarios->execute([$grupo['id_grupo']]);
+            $horarios = $stmtGrupoHorarios->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        if (!$horarios && $grupo['dias']) {
+            $dias = array_map('trim', explode(',', $grupo['dias']));
+
+            foreach ($dias as $dia) {
+                if ($dia === '') {
+                    continue;
+                }
+
+                $horarios[] = [
+                    'dia' => $dia,
+                    'hora_inicio' => $grupo['hora_inicio'],
+                    'hora_fin' => $grupo['hora_fin']
+                ];
+            }
+        }
+
+        $grupo['horarios'] = $horarios;
+    }
+    unset($grupo);
 
     echo json_encode([
         'success' => true,

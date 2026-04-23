@@ -81,13 +81,16 @@ ob_start();
 <table class="min-w-full">
 <thead class="bg-gray-100">
 <tr>
-<th class="p-3">Alumno</th>
-<th class="p-3">Cuota</th>
-<th class="p-3">Monto</th>
-<th class="p-3">Pagado</th>
-<th class="p-3">Vencimiento</th>
-<th class="p-3">Estado</th>
-<th class="p-3">Acción</th>
+<th class="p-3 text-left font-semibold text-gray-700 border-b-2 border-gray-300">Alumno</th>
+<th class="p-3 text-left font-semibold text-gray-700 border-b-2 border-gray-300">DNI</th>
+<th class="p-3 text-left font-semibold text-gray-700 border-b-2 border-gray-300">Curso</th>
+<th class="p-3 text-left font-semibold text-gray-700 border-b-2 border-gray-300">Grupo</th>
+<th class="p-3 text-center font-semibold text-gray-700 border-b-2 border-gray-300">Cuota</th>
+<th class="p-3 text-center font-semibold text-gray-700 border-b-2 border-gray-300">Monto</th>
+<th class="p-3 text-center font-semibold text-gray-700 border-b-2 border-gray-300">Pagado</th>
+<th class="p-3 text-center font-semibold text-gray-700 border-b-2 border-gray-300">Vencimiento</th>
+<th class="p-3 text-center font-semibold text-gray-700 border-b-2 border-gray-300">Estado</th>
+<th class="p-3 text-center font-semibold text-gray-700 border-b-2 border-gray-300">Acción</th>
 </tr>
 </thead>
 <tbody id="tablaCuotas"></tbody>
@@ -416,25 +419,31 @@ function renderCuotas(){
 
     let alumnosMap = {};
     cuotas.forEach((c, idx) => {
-        if(busqueda && !c.alumno.toLowerCase().includes(busqueda)) return;
+        if(busqueda && !(
+            c.alumno.toLowerCase().includes(busqueda) ||
+            c.dni.toLowerCase().includes(busqueda) ||
+            c.nombre_curso.toLowerCase().includes(busqueda) ||
+            c.nombre_grupo.toLowerCase().includes(busqueda)
+        )) return;
 
         if(!alumnosMap[c.alumno]){
             alumnosMap[c.alumno] = {
                 nombre: c.alumno,
                 dni: c.dni,
-                telefono: c.telefono,
+                nombre_curso: c.nombre_curso,
+                nombre_grupo: c.nombre_grupo,
                 id_matricula: c.id_matricula,
                 tiene_plan: c.tiene_plan,
                 id_plan: null,
                 cuotas: []
             };
         }
-        
+
         // Actualizar id_plan si viene de una cuota real
         if(c.numero_cuota > 0 && c.id_plan){
             alumnosMap[c.alumno].id_plan = c.id_plan;
         }
-        
+
         alumnosMap[c.alumno].cuotas.push({ ...c, idx: idx });
     });
 
@@ -444,54 +453,69 @@ function renderCuotas(){
         let totalCuotas   = alumno.cuotas.length;
         let cuotasPagadas = alumno.cuotas.filter(c => c.estado === "Pagada").length;
         let estadoGeneral = cuotasPagadas === totalCuotas ? "Pagado" : "Pendiente";
-        let colorGeneral  = estadoGeneral === "Pagado" ? "bg-green-200" : "bg-yellow-200";
+        let colorGeneral  = estadoGeneral === "Pagado" ? "bg-green-100 text-green-800 border-green-300" : "bg-yellow-100 text-yellow-800 border-yellow-300";
         let safeId        = "alumno_" + alumnoIndex;
 
         tabla.innerHTML += `
-        <tr class="border-t bg-gray-50 cursor-pointer hover:bg-gray-100"
+        <tr class="border-b border-gray-200 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
             onclick="toggleExpand('${safeId}')">
-            <td class="p-3 font-bold">${alumno.nombre}</td>
-            <td class="p-3 text-center">
-                <span class="text-xs bg-blue-100 px-2 py-1 rounded">${totalCuotas} cuota${totalCuotas !== 1 ? 's' : ''}</span>
+            <td class="p-3 font-bold text-gray-900">${alumno.nombre}</td>
+            <td class="p-3 text-gray-700 font-mono text-sm">${alumno.dni || 'N/A'}</td>
+            <td class="p-3 text-gray-700">
+                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">${alumno.nombre_curso || 'N/A'}</span>
             </td>
-            <td class="p-3 text-center"><span class="text-xs">${cuotasPagadas}/${totalCuotas}</span></td>
-            <td class="p-3"></td>
-            <td class="p-3"></td>
-            <td class="p-3 text-center"><span class="px-2 py-1 rounded ${colorGeneral}">${estadoGeneral}</span></td>
+            <td class="p-3 text-gray-700">
+                <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">${alumno.nombre_grupo || 'N/A'}</span>
+            </td>
             <td class="p-3 text-center">
-                <span id="expandIcon_${safeId}" class="text-lg cursor-pointer" onclick="toggleExpand('${safeId}')">▼</span>
-                ${alumno.id_plan ? `<button onclick="generarPDF(${alumno.id_plan})" class="bg-red-500 text-white px-2 py-1 rounded text-xs ml-2">PDF</button>` : ''}
+                <span class="text-xs bg-blue-100 px-2 py-1 rounded font-medium">${totalCuotas} cuota${totalCuotas !== 1 ? 's' : ''}</span>
+            </td>
+            <td class="p-3 text-center">
+                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">${cuotasPagadas}/${totalCuotas}</span>
+            </td>
+            <td class="p-3 text-center">
+                <span class="px-2 py-1 rounded text-xs font-medium border ${colorGeneral}">${estadoGeneral}</span>
+            </td>
+            <td class="p-3 text-center">
+                <span id="expandIcon_${safeId}" class="text-lg cursor-pointer transition-transform">▼</span>
+                ${alumno.id_plan ? `<button onclick="generarPDF(${alumno.id_plan})" class="bg-red-500 text-white px-2 py-1 rounded text-xs ml-2 hover:bg-red-600 transition-colors">PDF</button>` : ''}
             </td>
         </tr>
         `;
 
         alumno.cuotas.forEach((c) => {
-            let color = "bg-yellow-200";
-            if(c.estado === "Pagada")   color = "bg-green-200";
-            if(c.estado === "Atrasada") color = "bg-red-200";
-            if(c.estado === "Parcial")  color = "bg-orange-200";
+            let color = "bg-yellow-100 text-yellow-800 border-yellow-300";
+            if(c.estado === "Pagada")   color = "bg-green-100 text-green-800 border-green-300";
+            if(c.estado === "Atrasada") color = "bg-red-100 text-red-800 border-red-300";
+            if(c.estado === "Parcial")  color = "bg-orange-100 text-orange-800 border-orange-300";
 
             let btnAccion = "";
             if(c.numero_cuota == 0 && c.tiene_plan == 0){
                 btnAccion = `<button onclick="abrirPlanGeneral(${c.id_matricula})"
-                    class="bg-teal-600 text-white px-2 py-1 rounded text-xs">Crear Plan</button>`;
+                    class="bg-teal-600 text-white px-3 py-1 rounded text-xs hover:bg-teal-700 transition-colors">Crear Plan</button>`;
             } else if(c.numero_cuota == 0 && c.tiene_plan == 1){
-                btnAccion = "-";
+                btnAccion = `<span class="text-gray-500 text-xs">Plan creado</span>`;
             } else if(c.estado === "Pagada"){
-                btnAccion = "-";
+                btnAccion = `<span class="text-green-600 text-xs">✓ Pagado</span>`;
             } else {
                 btnAccion = `<button onclick="abrirModalCuota(${c.idx})"
-                    class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Pagar</button>`;
+                    class="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition-colors">Pagar</button>`;
             }
 
             tabla.innerHTML += `
-            <tr class="border-t cuota-row-${safeId}" style="display:none;">
-                <td class="p-2 pl-8 text-gray-600">└─ ${c.numero_cuota == 0 ? 'Matrícula' : 'Cuota ' + c.numero_cuota}</td>
+            <tr class="border-b border-gray-100 cuota-row-${safeId} hover:bg-gray-50 transition-colors" style="display:none;">
+                <td class="p-2 pl-8 text-gray-600">
+                    <span class="text-sm">└─ ${c.numero_cuota == 0 ? 'Matrícula' : 'Cuota ' + c.numero_cuota}</span>
+                </td>
                 <td class="p-2"></td>
-                <td class="p-2 text-right">S/ ${c.monto_cuota}</td>
-                <td class="p-2 text-right">S/ ${c.monto_pagado ?? '0.00'}</td>
-                <td class="p-2">${c.fecha_vencimiento ?? ""}</td>
-                <td class="p-2"><span class="px-2 py-1 rounded text-sm ${color}">${c.estado}</span></td>
+                <td class="p-2"></td>
+                <td class="p-2"></td>
+                <td class="p-2 text-right font-semibold text-gray-900">S/ ${parseFloat(c.monto_cuota || 0).toFixed(2)}</td>
+                <td class="p-2 text-right text-gray-700">S/ ${parseFloat(c.monto_pagado || 0).toFixed(2)}</td>
+                <td class="p-2 text-center text-sm text-gray-700">${c.fecha_vencimiento ? new Date(c.fecha_vencimiento).toLocaleDateString('es-ES') : 'N/A'}</td>
+                <td class="p-2 text-center">
+                    <span class="px-2 py-1 rounded text-xs font-medium border ${color}">${c.estado}</span>
+                </td>
                 <td class="p-2 text-center">${btnAccion}</td>
             </tr>
             `;

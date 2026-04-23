@@ -24,6 +24,10 @@ c.estado,
 a.nombre AS alumno,
 a.dni,
 a.telefono,
+a.fecha_registro,
+
+cu.nombre_curso,
+g.nombre_grupo,
 
 m.id_matricula,
 p.id_plan,
@@ -39,6 +43,12 @@ ON p.id_matricula = m.id_matricula
 
 INNER JOIN alumnos a
 ON m.id_alumno = a.id_alumno
+
+INNER JOIN grupos g
+ON m.id_grupo = g.id_grupo
+
+INNER JOIN cursos cu
+ON g.id_curso = cu.id_curso
 
 
 UNION ALL
@@ -62,6 +72,10 @@ DATE_ADD(m.fecha_matricula, INTERVAL 7 DAY) AS fecha_vencimiento,
 a.nombre AS alumno,
 a.dni,
 a.telefono,
+a.fecha_registro,
+
+cu.nombre_curso,
+g.nombre_grupo,
 
 m.id_matricula,
 NULL AS id_plan,
@@ -74,6 +88,12 @@ FROM matriculas m
 
 INNER JOIN alumnos a
 ON m.id_alumno = a.id_alumno
+
+INNER JOIN grupos g
+ON m.id_grupo = g.id_grupo
+
+INNER JOIN cursos cu
+ON g.id_curso = cu.id_curso
 
 WHERE m.monto_pagado >= m.monto_matricula
 

@@ -104,6 +104,28 @@ ob_start();
     font-size:12px;
   }
 
+  .pagination-controls{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:0.75rem;
+    flex-wrap:wrap;
+  }
+
+  .page-button{
+    background:#0f766e;
+    color:white;
+    border:none;
+    padding:0.55rem 0.95rem;
+    border-radius:9999px;
+    cursor:pointer;
+  }
+
+  .page-button:disabled{
+    opacity:0.45;
+    cursor:not-allowed;
+  }
+
   .text-gray-600{ color:#666; }
   .text-sm{ font-size:0.85rem; }
 
@@ -291,17 +313,17 @@ ob_start();
   <div class="grid mb-4">
     <div class="card stat">
       Presentes
-      <div><?= $presentes ?></div>
+      <div id="presentesHistorial"><?= $presentes ?></div>
     </div>
 
     <div class="card stat">
       Ausentes
-      <div><?= $ausentes ?></div>
+      <div id="ausentesHistorial"><?= $ausentes ?></div>
     </div>
 
     <div class="card stat">
       Asistencia
-      <div><?= $porcentaje ?>%</div>
+      <div id="porcentajeHistorial"><?= $porcentaje ?>%</div>
     </div>
   </div>
 
@@ -380,6 +402,12 @@ ob_start();
 
   </table>
 
+  <div class="pagination-controls mb-4">
+    <button id="prevPage" class="page-button" type="button">Anterior</button>
+    <span id="pageInfo">Página 1 de 1</span>
+    <button id="nextPage" class="page-button" type="button">Siguiente</button>
+  </div>
+
   <div class="card mt-4">
     <h3>📊 Asistencia semanal</h3>
     <canvas id="graficaAsistencia"></canvas>
@@ -441,6 +469,9 @@ function mostrarTab(tab) {
 // =========================
 let alumnosData = [];
 let gruposData = [];
+let historialData = [];
+let historialPage = 1;
+const historialPageSize = 10;
 
 // =========================
 // CARGAR GRUPOS
@@ -493,11 +524,13 @@ function cargarGrupos() {
             g.nombre_grupo;
 
      // convertir horarios a texto
-          let horariosTexto = g.horarios
+          let horarios = g.horarios || [];
+
+        let horariosTexto = horarios
             .map(h => `${h.hora_inicio} - ${h.hora_fin}`)
             .join(' | ');
 
-          let diasTexto = g.horarios
+          let diasTexto = horarios
             .map(h => h.dia)
             .join(' / ');
 
@@ -505,7 +538,7 @@ function cargarGrupos() {
           op.dataset.hora = horariosTexto;
 
       // 🔥 guardar horarios completos (IMPORTANTE)
-          op.dataset.horarios = JSON.stringify(g.horarios);
+          op.dataset.horarios = JSON.stringify(horarios);
 
           selectGrupo.appendChild(op);
 
@@ -585,12 +618,13 @@ function cargarAlumnos() {
 
   let grupo = gruposData.find(g => g.id_grupo == grupoId);
   if (grupo) {
-    let horariosTexto = grupo.horarios
-  .map(h => `${h.dia} ${h.hora_inicio}-${h.hora_fin}`)
-  .join('<br>');
+    let horarios = grupo.horarios || [];
+    let horariosTexto = horarios
+      .map(h => `${h.dia} ${h.hora_inicio}-${h.hora_fin}`)
+      .join('<br>');
 
-document.getElementById('infoGrupo').innerHTML =
-  `<span class="badge">${grupo.nombre_grupo}</span><br>${horariosTexto}`;
+    document.getElementById('infoGrupo').innerHTML =
+      `<span class="badge">${grupo.nombre_grupo}</span><br>${horariosTexto}`;
   }
 
   fetch(`../process/get_alumnos.php?id_grupo=${grupoId}`)
@@ -821,6 +855,8 @@ function validarHorarioSeleccionado(){
   let grupo = gruposData.find(g => g.id_grupo == grupoId);
   if(!grupo) return true;
 
+  let horarios = grupo.horarios || [];
+
   let ahora = new Date();
   let horaActual =
     ahora.getHours().toString().padStart(2,'0') + ':' +
@@ -830,7 +866,7 @@ function validarHorarioSeleccionado(){
   diaActual = diaActual.charAt(0).toUpperCase() + diaActual.slice(1);
 
   // 🔥 validar contra TODOS los horarios
-  let valido = grupo.horarios.some(h => {
+  let valido = horarios.some(h => {
 
     if(h.dia !== diaActual) return false;
 
@@ -973,9 +1009,15 @@ function filtrarHistorial(){
 
     }
 
-    renderHistorial(data.data);
+    historialData = data.data;
+    historialPage = 1;
 
-    actualizarStatsHistorial(data.data);
+    renderHistorial();
+    actualizarStatsHistorial(historialData);
+    cargarGraficaAsistencia();
+    cargarResumenSemana();
+    cargarGraficaMensual();
+    cargarResumenMensual();
 
   })
   .catch(error => {
@@ -989,17 +1031,26 @@ function filtrarHistorial(){
 }
 
 
-function renderHistorial(data){
+function renderHistorial(){
 
   let tbody = document.querySelector('#contenido-historial tbody');
 
   let html = '';
+  let total = historialData.length;
+  let totalPages = Math.max(1, Math.ceil(total / historialPageSize));
 
-  if(data.length === 0){
+  if (historialPage > totalPages) {
+    historialPage = totalPages;
+  }
+
+  let start = (historialPage - 1) * historialPageSize;
+  let pageData = historialData.slice(start, start + historialPageSize);
+
+  if(pageData.length === 0){
     html = `<tr><td colspan="6">No hay registros</td></tr>`;
   } else {
 
-    data.forEach(h => {
+    pageData.forEach(h => {
 
       let estado = '';
 
@@ -1037,6 +1088,17 @@ function renderHistorial(data){
 
   tbody.innerHTML = html;
 
+  document.getElementById('pageInfo').innerText =
+    `Página ${historialPage} de ${totalPages}`;
+
+  document.getElementById('prevPage').disabled = historialPage <= 1;
+  document.getElementById('nextPage').disabled = historialPage >= totalPages;
+
+}
+
+function cambiarPaginaHistorial(delta){
+  historialPage += delta;
+  renderHistorial();
 }
 
 // =========================
@@ -1088,7 +1150,15 @@ function cargarGraficaAsistencia(){
         },
         scales: {
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(15, 118, 110, 0.15)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(15, 118, 110, 0.08)'
+            }
           }
         }
       }
@@ -1160,9 +1230,26 @@ function cargarResumenSemana(){
 
       options: {
         responsive: true,
+        plugins: {
+          legend: {
+            position: 'top'
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        },
         scales: {
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(51, 65, 85, 0.08)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(51, 65, 85, 0.06)'
+            }
           }
         }
       }
@@ -1220,7 +1307,12 @@ function cargarGraficaMensual(){
           {
             label: 'Asistencias por día',
             data: asistencias,
-            tension: 0.3
+            tension: 0.3,
+            borderColor: '#0f766e',
+            backgroundColor: 'rgba(15, 118, 110, 0.15)',
+            fill: true,
+            pointBackgroundColor: '#0f766e',
+            pointRadius: 4
           }
         ]
 
@@ -1232,13 +1324,21 @@ function cargarGraficaMensual(){
 
         plugins: {
           legend: {
-            display: true
+            position: 'top'
           }
         },
 
         scales: {
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(15, 118, 110, 0.12)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(15, 118, 110, 0.08)'
+            }
           }
         }
 
@@ -1295,7 +1395,16 @@ function cargarResumenMensual(){
             data: [
               asistencias,
               ausentes
-            ]
+            ],
+            backgroundColor: [
+              'rgba(15, 118, 110, 0.8)',
+              'rgba(220, 38, 38, 0.8)'
+            ],
+            borderColor: [
+              'rgba(15, 118, 110, 1)',
+              'rgba(220, 38, 38, 1)'
+            ],
+            borderWidth: 1
           }
         ]
 
@@ -1304,10 +1413,22 @@ function cargarResumenMensual(){
       options: {
 
         responsive: true,
-
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
         scales: {
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(15, 118, 110, 0.12)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(15, 118, 110, 0.08)'
+            }
           }
         }
 
@@ -1348,18 +1469,9 @@ function actualizarStatsHistorial(data){
         )
       : 0;
 
-  document.querySelectorAll(
-    ".stat div"
-  )[0].innerText = presentes;
-
-  document.querySelectorAll(
-    ".stat div"
-  )[1].innerText = ausentes;
-
-  document.querySelectorAll(
-    ".stat div"
-  )[2].innerText =
-    porcentaje + "%";
+  document.getElementById('presentesHistorial').innerText = presentes;
+  document.getElementById('ausentesHistorial').innerText = ausentes;
+  document.getElementById('porcentajeHistorial').innerText = porcentaje + "%";
 
 }
 
@@ -1376,7 +1488,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cargarHorariosHoy();
   cargarGraficaAsistencia();
   cargarResumenSemana();
-  cargarGraficaMensual(); 
+  cargarGraficaMensual();
   cargarResumenMensual();
 
   // =========================
@@ -1411,6 +1523,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectorSemana = document.getElementById('selectorSemana');
   if (selectorSemana) {
     selectorSemana.addEventListener('change', cargarResumenSemana);
+  }
+
+  const prevPage = document.getElementById('prevPage');
+  const nextPage = document.getElementById('nextPage');
+
+  if (prevPage) {
+    prevPage.addEventListener('click', () => cambiarPaginaHistorial(-1));
+  }
+
+  if (nextPage) {
+    nextPage.addEventListener('click', () => cambiarPaginaHistorial(1));
   }
 
 });

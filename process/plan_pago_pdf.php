@@ -27,6 +27,9 @@ SELECT
     a.nombre AS alumno,
     a.dni,
     a.telefono,
+    a.nombre_apoderado,
+    a.dni_apoderado,
+    a.telefonopadres,
     m.id_matricula,
     c.numero_cuota,
     c.monto_cuota,
@@ -85,6 +88,11 @@ $html = '
             <tr><td>Alumno</td><td>' . $plan['alumno'] . '</td></tr>
             <tr><td>DNI</td><td>' . $plan['dni'] . '</td></tr>
             <tr><td>Teléfono</td><td>' . $plan['telefono'] . '</td></tr>
+            <tr><td colspan="2" style="background-color: #009688; color: white; font-weight: bold; text-align: center; padding: 10px;">Datos del Apoderado/Representante</td></tr>
+            <tr><td>Nombre Apoderado</td><td>' . ($plan['nombre_apoderado'] ?: 'N/A') . '</td></tr>
+            <tr><td>DNI Apoderado</td><td>' . ($plan['dni_apoderado'] ?: 'N/A') . '</td></tr>
+            <tr><td>Teléfono Padres</td><td>' . ($plan['telefonopadres'] ?: 'N/A') . '</td></tr>
+            <tr><td colspan="2" style="background-color: #009688; color: white; font-weight: bold; text-align: center; padding: 10px;">Datos del Plan</td></tr>
             <tr><td>ID Matrícula</td><td>' . $plan['id_matricula'] . '</td></tr>
             <tr><td>ID Plan</td><td>' . $plan['id_plan'] . '</td></tr>
             <tr><td>Monto Base</td><td>S/ ' . number_format($plan['monto_base'], 2) . '</td></tr>
