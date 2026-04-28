@@ -18,13 +18,15 @@ CREATE TABLE usuarios (
 
     rol ENUM(
         'ADMINISTRADOR',
-        'JEFE',
+        'SECRETARIO',
         'ASISTENTE'
     ) DEFAULT 'ASISTENTE'
 );
 
 INSERT INTO usuarios (usuario, password, nombre, rol) VALUES
-('beatcell','123456','Administrador','ADMINISTRADOR');
+('beatcell','123456','Administrador','ADMINISTRADOR'),
+('secretario','sec123','secretario','SECRETARIO'),
+('asistente','asi123','asistente','ASISTENTE');
 
 -- ======================================
 -- TABLA CURSOS

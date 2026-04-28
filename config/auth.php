@@ -14,12 +14,12 @@ if (!isset($_SESSION['id_usuario'])) { // ✅ CORREGIDO
 if (!function_exists('checkRole')) {
     function checkRole(array $roles)
     {
-        if (!isset($_SESSION['role'])) {
+        if (!isset($_SESSION['rol'])) {
             header("Location: ../public/login.php");
             exit;
         }
 
-        $userRole = strtoupper($_SESSION['role']);
+        $userRole = strtoupper($_SESSION['rol']);
         $roles = array_map('strtoupper', $roles);
 
         if (!in_array($userRole, $roles)) {
@@ -32,3 +32,4 @@ if (!function_exists('checkRole')) {
         }
     }
 }
+

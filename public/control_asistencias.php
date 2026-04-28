@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-checkRole(['ADMINISTRADOR']);
+checkRole(['ADMINISTRADOR', 'ASISTENTE']);
 
 $title  = "Asistencia de Estudiantes";
 $active = "asistencia";
@@ -172,7 +172,7 @@ ob_start();
 </div>
 
 <!-- ========================= -->
-<!-- TAB ASISTENCIA -->
+<!-- TAB ASISTENCIA - Solo ADMIN -->
 <!-- ========================= -->
 <div id="contenido-asistencia" class="tab-content">
 
@@ -1068,24 +1068,11 @@ function marcarAsistencia(id_asistencia, estado, tipo = 'alumno') {
 }
 
 
+
 // =========================
 // VALIDAR HORARIO SELECCIONADO
 // =========================
 function validarHorarioSeleccionado(){
-
-  let grupoId = document.getElementById('grupo').value;
-
-  if(!grupoId) return true;
-
-  let grupo = gruposData.find(g => g.id_grupo == grupoId);
-
-  if(!grupo) return true;
-
-  let ahora = new Date();
-  let horaActual = ahora.getHours().toString().padStart(2,'0') + ':' +
-                   ahora.getMinutes().toString().padStart(2,'0');
-
-  function validarHorarioSeleccionado(){
 
   let grupoId = document.getElementById('grupo').value;
   if(!grupoId) return true;
@@ -1103,30 +1090,13 @@ function validarHorarioSeleccionado(){
   let diaActual = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
   diaActual = diaActual.charAt(0).toUpperCase() + diaActual.slice(1);
 
-  // 🔥 validar contra TODOS los horarios
   let valido = horarios.some(h => {
-
     if(h.dia !== diaActual) return false;
-
     return horaActual >= h.hora_inicio && horaActual <= h.hora_fin;
-
   });
 
   if(!valido){
     alert("⚠ No estás dentro del horario de clase");
-    return false;
-  }
-
-  return true;
-}
-
-  if(horaActual < inicio){
-    alert("⏳ La clase aún no empieza");
-    return false;
-  }
-
-  if(horaActual > fin){
-    alert("⚠ La clase ya terminó");
     return false;
   }
 
@@ -1809,6 +1779,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </script>
 
+
 <?php
 $content = ob_get_clean();
-require __DIR__. '/layout.php';
+require __DIR__ . '/layout.php';
+?>
+

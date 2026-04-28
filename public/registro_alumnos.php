@@ -1,6 +1,14 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-checkRole(['ADMINISTRADOR', 'ASESOR']);
+
+
+$ROLE = strtoupper($_SESSION['rol'] ?? '');
+
+checkRole([
+    'ADMINISTRADOR',
+    'SECRETARIO',
+    'ASISTENTE'
+]);
 
 $config = require __DIR__ . '/../config/config.php';
 $base = rtrim($config['base_url'], '/');
@@ -63,11 +71,15 @@ ob_start();
 <!-- ========================= -->
 <div class="flex border-b mb-6">
 
+<?php if(in_array($ROLE, ['ADMINISTRADOR','SECRETARIO'])): ?>
+
     <button id="tab-registro"
         class="tab-btn px-4 py-2 font-semibold bg-teal-600 text-white"
         onclick="mostrarTab('registro')">
         Registrar Alumno
     </button>
+
+<?php endif; ?>
 
     <button id="tab-info"
         class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:bg-gray-100"
@@ -77,10 +89,14 @@ ob_start();
 
 </div>
 
+
 <!-- ========================= -->
 <!-- TAB REGISTRO -->
 <!-- ========================= -->
+<?php if(in_array($ROLE, ['ADMINISTRADOR','SECRETARIO'])): ?>
+
 <div id="contenido-registro" class="tab-content">
+
 
 <form action="../process/process_alumno.php" method="POST" class="space-y-8" id="formAlumno">
 
@@ -307,6 +323,8 @@ ob_start();
 
 </div>
 
+<?php endif; ?>
+
 
 
 <!-- ========================= -->
@@ -486,26 +504,41 @@ ob_start();
 
                     <td class="p-2 flex gap-2">
 
-                        <button
-                            onclick="abrirEditarAlumno(<?= $a['id_alumno'] ?>)"
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">
-                            Editar
-                        </button>
+                        <!-- EDITAR: ADMIN y SECRETARIO -->
+                        <?php if(in_array($ROLE, ['ADMINISTRADOR','SECRETARIO'])): ?>
+
+                            <button
+                                onclick="abrirEditarAlumno(<?= $a['id_alumno'] ?>)"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">
+                                Editar
+                            </button>
+
+                        <?php endif; ?>
 
 
-                        <?php if($a['estado'] == 'Activo'): ?>
-                            <a href="../process/process_baja_alumno.php?id=<?= $a['id_alumno'] ?>"
-                               class="bg-red-500 text-white px-3 py-1 rounded text-sm">
-                               Baja
-                            </a>
-                        <?php else: ?>
-                            <a href="../process/process_reactivar_alumno.php?id=<?= $a['id_alumno'] ?>"
-                               class="bg-green-500 text-white px-3 py-1 rounded text-sm">
-                               Reactivar
-                            </a>
+                        <!-- BAJA / REACTIVAR: SOLO ADMINISTRADOR -->
+                        <?php if($ROLE === 'ADMINISTRADOR'): ?>
+
+                            <?php if($a['estado'] == 'Activo'): ?>
+
+                                <a href="../process/process_baja_alumno.php?id=<?= $a['id_alumno'] ?>"
+                                class="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                                Baja
+                                </a>
+
+                            <?php else: ?>
+
+                                <a href="../process/process_reactivar_alumno.php?id=<?= $a['id_alumno'] ?>"
+                                class="bg-green-500 text-white px-3 py-1 rounded text-sm">
+                                Reactivar
+                                </a>
+
+                            <?php endif; ?>
+
                         <?php endif; ?>
 
                     </td>
+
 
                 </tr>
             <?php endforeach; ?>
@@ -1048,6 +1081,27 @@ window.addEventListener("click", function(e){
 });
 
 
+// ===============================
+// CARGAR TAB INICIAL SEGÚN ROL
+// ===============================
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const role = "<?= $ROLE ?>";
+
+    if (role === "ASISTENTE") {
+
+        // Cargar directamente Información
+        mostrarTab("info");
+
+    } else {
+
+        // ADMIN o SECRETARIO
+        mostrarTab("registro");
+
+    }
+
+});
 
 
 </script>

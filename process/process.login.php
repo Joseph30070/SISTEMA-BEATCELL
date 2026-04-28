@@ -14,12 +14,12 @@ if ($user && trim($password) === trim($user['password'])) {
 
     $_SESSION['id_usuario'] = $user['id_usuario'];
     $_SESSION['nombre']     = $user['nombre'];
-    $_SESSION['role']       = strtoupper($user['rol']);
+    $_SESSION['rol']        = strtoupper($user['rol']);
 
     header("Location: ../public/home.php");
     exit;
 
-} else {
+}else {
     header("Location: ../public/login.php?error=Usuario o contraseña incorrectos");
     exit;
 }

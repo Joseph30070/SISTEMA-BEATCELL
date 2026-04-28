@@ -3,7 +3,7 @@ require_once __DIR__ . '/../config/auth.php';
 
 $title  = 'Inicio';
 $active = 'home';
-$ROLE   = strtoupper($_SESSION['role'] ?? '');
+$ROLE = strtoupper($_SESSION['rol'] ?? '');
 
 $pdo = require __DIR__ . '/../config/db.php';
 
@@ -89,8 +89,9 @@ ob_start();
   <h2 class="text-3xl font-bold text-gray-800 mb-2">
     Bienvenido <?= htmlspecialchars($_SESSION['nombre'] ?? 'Usuario') ?>
   </h2>
+
   <p class="text-sm text-gray-500">
-    Panel principal del sistema Beatcell
+    Rol: <strong><?= htmlspecialchars($_SESSION['rol'] ?? 'SIN ROL') ?></strong>
   </p>
 </div>
 

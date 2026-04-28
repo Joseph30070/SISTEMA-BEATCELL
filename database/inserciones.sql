@@ -10,13 +10,6 @@ INSERT INTO grupos (id_curso, nombre_grupo, dias, hora_inicio, hora_fin) VALUES
 (4, 'PC - A', 'Martes/Jueves', '16:00:00', '18:00:00');
 
 
--- ======================================
--- HORARIO ESPECIAL (1)
--- ======================================
-
-INSERT INTO horarios_especiales (id_grupo, dia_semana, hora_inicio, hora_fin) VALUES
-(1, 'Sábado', '09:00:00', '12:00:00');
-
 
 -- ======================================
 -- ALUMNOS (5 COMPLETOS)
