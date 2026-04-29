@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-checkRole(['ADMINISTRADOR', 'ASESOR']);
+checkRole(['ADMINISTRADOR', 'SECRETARIO']);
 
 $title  = "Control de Cuotas";
 $active = "cuotas";
@@ -290,8 +290,12 @@ ob_start();
 </div>
 </div>
 
+<script>
+const ROLE = <?php echo json_encode($_SESSION['rol'] ?? ''); ?>;
+</script>
 
 <script>
+
 
 let cuotas           = [];
 let matriculas       = [];
@@ -337,6 +341,7 @@ function fetchCuotas(){
 // =========================
 
 function renderMatriculas(){
+
     let tabla = document.getElementById("tablaMatriculas");
     tabla.innerHTML = "";
 
@@ -345,18 +350,54 @@ function renderMatriculas(){
         const esEspecializacion = m.tipo_ciclo === 'Especialización';
 
         const badgeTipo = esEspecializacion
-            ? `<span class="bg-red-100 text-red-700 border border-red-300 px-2 py-1 rounded text-xs font-bold">${m.tipo_ciclo} (Único pago)</span>`
-            : `<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">${m.tipo_ciclo || "Normal"}</span>`;
+            ? `<span class="bg-purple-200 px-2 py-1 rounded text-xs">
+                Especialización
+               </span>`
+            : `<span class="bg-blue-200 px-2 py-1 rounded text-xs">
+                Regular
+               </span>`;
 
-        const botonAccion = esEspecializacion
-            ? `<button onclick="confirmarEspecializacion(${i})"
-                class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">
-                Confirmar
-              </button>`
-            : `<button onclick="abrirModalMatricula(${i})"
-                class="bg-blue-500 text-white px-2 py-1 rounded">
-                Pagar
-              </button>`;
+        let botonAccion = "";
+
+        // =========================
+        // SECRETARIO
+        // =========================
+
+        if (ROLE === "SECRETARIO") {
+
+            if (!esEspecializacion) {
+
+                botonAccion = `<button onclick="abrirModalMatricula(${i})"
+                    class="bg-blue-500 text-white px-2 py-1 rounded">
+                    Pagar
+                </button>`;
+
+            } else {
+
+                botonAccion = `<span class="text-gray-400 text-xs">
+                    No permitido
+                </span>`;
+
+            }
+
+        }
+
+        // =========================
+        // ADMINISTRADOR
+        // =========================
+
+        else {
+
+            botonAccion = esEspecializacion
+                ? `<button onclick="confirmarEspecializacion(${i})"
+                    class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">
+                    Confirmar
+                </button>`
+                : `<button onclick="abrirModalMatricula(${i})"
+                    class="bg-blue-500 text-white px-2 py-1 rounded">
+                    Pagar
+                </button>`;
+        }
 
         tabla.innerHTML += `
         <tr class="border-t">
@@ -364,12 +405,18 @@ function renderMatriculas(){
             <td class="p-2">${badgeTipo}</td>
             <td class="p-2">S/ ${m.monto_matricula}</td>
             <td class="p-2">${m.fecha_vencimiento}</td>
-            <td class="p-2"><span class="bg-yellow-200 px-2 py-1 rounded">${m.estado}</span></td>
+            <td class="p-2">
+                <span class="bg-yellow-200 px-2 py-1 rounded">
+                    ${m.estado}
+                </span>
+            </td>
             <td class="p-2">${botonAccion}</td>
         </tr>
         `;
     });
+
 }
+
 
 // =========================
 // GENERAR PDF PLAN
@@ -420,11 +467,12 @@ function renderCuotas(){
     let alumnosMap = {};
     cuotas.forEach((c, idx) => {
         if(busqueda && !(
-            c.alumno.toLowerCase().includes(busqueda) ||
-            c.dni.toLowerCase().includes(busqueda) ||
-            c.nombre_curso.toLowerCase().includes(busqueda) ||
-            c.nombre_grupo.toLowerCase().includes(busqueda)
+            (c.alumno || '').toLowerCase().includes(busqueda) ||
+            (c.dni || '').toLowerCase().includes(busqueda) ||
+            (c.nombre_curso || '').toLowerCase().includes(busqueda) ||
+            (c.nombre_grupo || '').toLowerCase().includes(busqueda)
         )) return;
+
 
         if(!alumnosMap[c.alumno]){
             alumnosMap[c.alumno] = {
@@ -478,8 +526,14 @@ function renderCuotas(){
             </td>
             <td class="p-3 text-center">
                 <span id="expandIcon_${safeId}" class="text-lg cursor-pointer transition-transform">▼</span>
-                ${alumno.id_plan ? `<button onclick="generarPDF(${alumno.id_plan})" class="bg-red-500 text-white px-2 py-1 rounded text-xs ml-2 hover:bg-red-600 transition-colors">PDF</button>` : ''}
+                ${(ROLE === "ADMINISTRADOR" && alumno.id_plan) 
+                    ? `<button onclick="generarPDF(${alumno.id_plan})"
+                        class="bg-red-500 text-white px-2 py-1 rounded text-xs ml-2 hover:bg-red-600 transition-colors">
+                        PDF
+                    </button>` 
+                    : ''}
             </td>
+
         </tr>
         `;
 
@@ -490,17 +544,45 @@ function renderCuotas(){
             if(c.estado === "Parcial")  color = "bg-orange-100 text-orange-800 border-orange-300";
 
             let btnAccion = "";
-            if(c.numero_cuota == 0 && c.tiene_plan == 0){
-                btnAccion = `<button onclick="abrirPlanGeneral(${c.id_matricula})"
-                    class="bg-teal-600 text-white px-3 py-1 rounded text-xs hover:bg-teal-700 transition-colors">Crear Plan</button>`;
-            } else if(c.numero_cuota == 0 && c.tiene_plan == 1){
-                btnAccion = `<span class="text-gray-500 text-xs">Plan creado</span>`;
-            } else if(c.estado === "Pagada"){
-                btnAccion = `<span class="text-green-600 text-xs">✓ Pagado</span>`;
+
+            // ==========================
+            // SECRETARIO
+            // ==========================
+            if (ROLE === "SECRETARIO") {
+
+                // NO puede hacer nada en cuotas
+                btnAccion = `<span class="text-gray-400 text-xs">Solo lectura</span>`;
+
             } else {
-                btnAccion = `<button onclick="abrirModalCuota(${c.idx})"
-                    class="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition-colors">Pagar</button>`;
+
+                // ==========================
+                // ADMINISTRADOR
+                // ==========================
+
+                if(c.numero_cuota == 0 && (!c.tiene_plan || c.tiene_plan == 0)){
+
+                    btnAccion = `<button onclick="abrirPlanGeneral(${c.id_matricula})"
+                        class="bg-teal-600 text-white px-3 py-1 rounded text-xs hover:bg-teal-700">
+                        Crear Plan
+                    </button>`;
+
+                } else if(c.numero_cuota == 0 && c.tiene_plan == 1){
+
+                    btnAccion = `<span class="text-gray-500 text-xs">Plan creado</span>`;
+
+                } else if(c.estado === "Pagada"){
+
+                    btnAccion = `<span class="text-green-600 text-xs">✓ Pagado</span>`;
+
+                } else {
+
+                    btnAccion = `<button onclick="abrirModalCuota(${c.idx})"
+                        class="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">
+                        Pagar
+                    </button>`;
+                }
             }
+
 
             tabla.innerHTML += `
             <tr class="border-b border-gray-100 cuota-row-${safeId} hover:bg-gray-50 transition-colors" style="display:none;">

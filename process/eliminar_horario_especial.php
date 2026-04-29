@@ -1,8 +1,15 @@
 <?php
+require_once __DIR__ . '/../config/auth.php';
+checkRole(['ADMINISTRADOR']); // 🔐 SOLO ADMIN
 
 $pdo = require __DIR__ . '/../config/db.php';
 
-$grupo = $_POST['grupo'];
+$grupo = $_POST['grupo'] ?? null;
+
+if (!$grupo) {
+    echo "error";
+    exit;
+}
 
 try {
 
@@ -11,7 +18,6 @@ try {
     /*
     1. Obtener id del grupo
     */
-
     $stmt = $pdo->prepare("
         SELECT id_grupo
         FROM grupos
@@ -22,14 +28,13 @@ try {
 
     $id_grupo = $stmt->fetchColumn();
 
-    if(!$id_grupo){
+    if (!$id_grupo) {
         throw new Exception("Grupo no encontrado");
     }
 
     /*
     2. Eliminar horarios especiales
     */
-
     $stmt = $pdo->prepare("
         DELETE FROM horarios_especiales
         WHERE id_grupo = ?
@@ -40,7 +45,6 @@ try {
     /*
     3. Verificar si el grupo tiene horario normal
     */
-
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
         FROM grupos
@@ -54,11 +58,9 @@ try {
     $tieneHorarioNormal = $stmt->fetchColumn();
 
     /*
-    4. Si NO tiene horario normal
-       → eliminar grupo
+    4. Si NO tiene horario normal → eliminar grupo
     */
-
-    if(!$tieneHorarioNormal){
+    if (!$tieneHorarioNormal) {
 
         $stmt = $pdo->prepare("
             DELETE FROM grupos
@@ -66,17 +68,15 @@ try {
         ");
 
         $stmt->execute([$id_grupo]);
-
     }
 
     $pdo->commit();
 
     echo "ok";
 
-} catch(Exception $e){
+} catch (Exception $e) {
 
     $pdo->rollBack();
 
     echo "error";
-
 }

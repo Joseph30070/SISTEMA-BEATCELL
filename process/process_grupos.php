@@ -1,7 +1,5 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-checkRole(['ADMINISTRADOR']);
-
 $pdo = require __DIR__ . '/../config/db.php';
 
 $action = $_POST['action'] ?? 'create';
@@ -12,6 +10,8 @@ try {
     // CREAR GRUPO
     // =========================
     if ($action === 'create') {
+
+        checkRole(['ADMINISTRADOR', 'SECRETARIO']); // 🔥 agregado
 
         $id_curso = $_POST['id_curso'] ?? null;
         $nombre_grupo = trim($_POST['nombre_grupo'] ?? '');
@@ -48,6 +48,8 @@ try {
     // =========================
     if ($action === 'delete') {
 
+        checkRole(['ADMINISTRADOR']); // 🔥 solo admin
+
         $id_grupo = $_POST['id_grupo'] ?? null;
 
         if (!$id_grupo) {
@@ -63,9 +65,11 @@ try {
     }
 
     // =========================
-    // EDITAR GRUPO (PREPARADO)
+    // EDITAR GRUPO
     // =========================
     if ($action === 'edit') {
+
+        checkRole(['ADMINISTRADOR']); // 🔥 solo admin
 
         $id_grupo = $_POST['id_grupo'] ?? null;
         $id_curso = $_POST['id_curso'] ?? null;

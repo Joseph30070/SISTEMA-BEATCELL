@@ -1,12 +1,8 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-checkRole(['ADMINISTRADOR']);
+checkRole(['ADMINISTRADOR', 'SECRETARIO']); //  ajustado según tu sistema
 
 $pdo = require __DIR__ . '/../config/db.php';
-
-// Obtener cursos
-$stmt = $pdo->query("SELECT * FROM cursos ORDER BY id_curso DESC");
-$cursos = $stmt->fetchAll();
 
 $nombre = trim($_POST['nombre'] ?? '');
 

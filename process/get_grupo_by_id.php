@@ -1,7 +1,6 @@
 <?php
 $pdo = require __DIR__ . '/../config/db.php';
 
-
 header('Content-Type: application/json');
 
 if (!isset($_GET['id_grupo'])) {
@@ -25,14 +24,22 @@ $stmt->execute([$id]);
 $grupo = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($grupo) {
+
+    // 🔥 NORMALIZAR NULLS (ESTO EVITA CRASH EN JS)
+    $grupo['hora_inicio'] = $grupo['hora_inicio'] ?? '';
+    $grupo['hora_fin'] = $grupo['hora_fin'] ?? '';
+    $grupo['dias'] = $grupo['dias'] ?? '';
+
     echo json_encode([
         "success" => true,
         "grupo" => $grupo
     ]);
+
 } else {
     echo json_encode([
         "success" => false,
         "message" => "Grupo no encontrado"
     ]);
 }
+
 

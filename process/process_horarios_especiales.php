@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-checkRole(['ADMINISTRADOR']);
+checkRole(['ADMINISTRADOR']); // 🔐 SOLO ADMIN
 
 $pdo = require __DIR__ . '/../config/db.php';
 
@@ -27,7 +27,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT id_grupo 
         FROM grupos 
-        WHERE nombre_grupo = ? AND id_curso = ?
+        WHERE LOWER(nombre_grupo) = LOWER(?) AND id_curso = ?
     ");
     $stmt->execute([$nombre_grupo, $id_curso]);
 
@@ -45,10 +45,9 @@ try {
     }
 
     // =========================
-    // 3. PREPARAR QUERIES (OPTIMIZADO)
+    // 3. PREPARAR QUERIES
     // =========================
 
-    // 🔍 Validar duplicados
     $stmtCheck = $pdo->prepare("
         SELECT COUNT(*) 
         FROM horarios_especiales 
@@ -58,7 +57,6 @@ try {
         AND hora_fin = ?
     ");
 
-    // 💾 Insertar
     $stmtInsert = $pdo->prepare("
         INSERT INTO horarios_especiales
         (id_grupo, dia_semana, hora_inicio, hora_fin)
@@ -73,28 +71,23 @@ try {
         $inicio = $hora_inicio[$dia] ?? null;
         $fin = $hora_fin[$dia] ?? null;
 
-        if ($inicio && $fin) {
+        if (!$inicio || !$fin) continue;
 
-            // 🔍 Verificar si ya existe
-            $stmtCheck->execute([
+        $stmtCheck->execute([
+            $id_grupo,
+            $dia,
+            $inicio,
+            $fin
+        ]);
+
+        if (!$stmtCheck->fetchColumn()) {
+
+            $stmtInsert->execute([
                 $id_grupo,
                 $dia,
                 $inicio,
                 $fin
             ]);
-
-            $existe = $stmtCheck->fetchColumn();
-
-            // ✅ Solo insertar si NO existe
-            if (!$existe) {
-
-                $stmtInsert->execute([
-                    $id_grupo,
-                    $dia,
-                    $inicio,
-                    $fin
-                ]);
-            }
         }
     }
 

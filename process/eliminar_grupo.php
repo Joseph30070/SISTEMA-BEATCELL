@@ -1,14 +1,29 @@
 <?php
+require_once __DIR__ . '/../config/auth.php';
+checkRole(['ADMINISTRADOR']); // 🔐 SOLO ADMIN
 
 $pdo = require __DIR__ . '/../config/db.php';
 
-$id = $_POST['id_grupo'];
+$id = $_POST['id_grupo'] ?? null;
 
-$stmt = $pdo->prepare("
-    DELETE FROM grupos
-    WHERE id_grupo = ?
-");
+if (!$id) {
+    echo "error";
+    exit;
+}
 
-$stmt->execute([$id]);
+try {
 
-echo "ok";
+    $stmt = $pdo->prepare("
+        DELETE FROM grupos
+        WHERE id_grupo = ?
+    ");
+
+    $stmt->execute([$id]);
+
+    echo "ok";
+
+} catch (Exception $e) {
+
+    echo "error";
+
+}

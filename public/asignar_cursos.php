@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-checkRole(['ADMINISTRADOR']);
+checkRole(['ADMINISTRADOR', 'SECRETARIO', 'ASISTENTE']);
+
+$ROLE = $_SESSION['rol'] ?? '';
 
 $pdo = require __DIR__ . '/../config/db.php';
 
@@ -21,6 +23,7 @@ ORDER BY g.id_grupo DESC
 ");
 
 $grupos = $stmt->fetchAll();
+
 
 $title = "Cursos y Grupos";
 $active = "cursos";
@@ -75,17 +78,30 @@ ob_start();
 
 <!-- TABS -->
 <div class="mb-4">
-    <button class="tab-btn active" onclick="showTab('tab1', this)">Normal</button>
-    <button class="tab-btn" onclick="showTab('tab2', this)">Horarios especiales</button>
+
+    <button class="tab-btn active" onclick="showTab('tab1', this)">
+        Normal
+    </button>
+
+    <!-- SOLO ADMIN PUEDE ENTRAR A TAB 2 -->
+    <button class="tab-btn <?php echo ($ROLE!='ADMINISTRADOR')?'opacity-50 cursor-not-allowed':''; ?>"
+            <?php echo ($ROLE!='ADMINISTRADOR')?'disabled':''; ?>
+            onclick="showTab('tab2', this)">
+        Horarios especiales
+    </button>
+
 </div>
 
-<!-- ================= TAB 1 ================= -->
+<!-- ================= TAB 1 (VISIBLE PARA TODOS) ================= -->
 <div id="tab1">
 
     <!-- CREAR CURSO -->
     <div class="card">
+
         <h3 class="font-semibold mb-2">Nuevo Curso</h3>
 
+        <!-- SOLO ADMIN Y SECRETARIO PUEDEN CREAR CURSOS -->
+        <?php if(in_array($ROLE, ['ADMINISTRADOR','SECRETARIO'])): ?>
         <form action="../process/process_cursos.php" method="POST">
             <input type="text" name="nombre" placeholder="Ej: Programación Web"
                 class="border px-3 py-2 rounded w-full mb-2">
@@ -94,13 +110,19 @@ ob_start();
                 Agregar Curso
             </button>
         </form>
+        <?php else: ?>
+            <p class="text-gray-500 text-sm">Solo lectura</p>
+        <?php endif; ?>
+
     </div>
 
-    <!-- LISTA CURSOS -->
+    <!-- LISTA CURSOS (TODOS PUEDEN VER) -->
     <div class="card">
+
         <h3 class="font-semibold mb-3">Cursos Registrados</h3>
 
         <table class="w-full border rounded overflow-hidden">
+
             <thead class="bg-teal-600 text-white">
                 <tr>
                     <th class="p-3 text-left">ID</th>
@@ -116,10 +138,13 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             </tbody>
+
         </table>
+
     </div>
 
     <!-- CREAR GRUPO -->
+    <?php if(in_array($ROLE, ['ADMINISTRADOR','SECRETARIO'])): ?>
     <form action="../process/process_grupos.php" method="POST" class="card">
 
         <h3 class="font-semibold mb-3">Crear Grupo</h3>
@@ -158,12 +183,17 @@ ob_start();
         </button>
 
     </form>
+    <?php else: ?>
+        <p class="text-gray-500 text-sm px-4">No tienes permisos para crear grupos</p>
+    <?php endif; ?>
 
-    <!-- TABLA GRUPOS -->
+    <!-- TABLA GRUPOS (TODOS VEN) -->
     <div class="card">
+
         <h3 class="font-semibold mb-3">Grupos Registrados</h3>
 
         <table class="w-full border rounded overflow-hidden">
+
             <thead class="bg-blue-600 text-white">
                 <tr>
                     <th class="p-3 text-left">Curso</th>
@@ -177,104 +207,119 @@ ob_start();
             <tbody class="bg-white">
             <?php foreach($grupos as $g): ?>
                 <tr class="border-t">
+
                     <td class="p-2"><?= $g['nombre_curso'] ?></td>
                     <td class="p-2"><?= $g['nombre_grupo'] ?></td>
                     <td class="p-2"><?= $g['dias'] ?></td>
                     <td class="p-2">
                         <?= substr($g['hora_inicio'],0,5) ?> - <?= substr($g['hora_fin'],0,5) ?>
                     </td>
+
                     <td class="p-2 text-center">
 
-                        <button onclick="abrirEditarGrupo(<?= $g['id_grupo'] ?>)"
-                                class="bg-yellow-500 text-white px-2 py-1 rounded">
-                            Editar
-                        </button>
+                        <?php if($ROLE === 'ADMINISTRADOR'): ?>
 
-                        <button onclick="eliminarGrupo(<?= $g['id_grupo'] ?>)"
-                                class="bg-red-600 text-white px-3 py-1 rounded text-sm">
-                            Eliminar
-                        </button>
+                            <button onclick="abrirEditarGrupo(<?= $g['id_grupo'] ?>)"
+                                    class="bg-yellow-500 text-white px-2 py-1 rounded">
+                                Editar
+                            </button>
+
+                            <button onclick="eliminarGrupo(<?= $g['id_grupo'] ?>)"
+                                    class="bg-red-600 text-white px-3 py-1 rounded text-sm">
+                                Eliminar
+                            </button>
+
+                        <?php else: ?>
+                            <span class="text-gray-400 text-xs">Solo lectura</span>
+                        <?php endif; ?>
 
                     </td>
+
                 </tr>
             <?php endforeach; ?>
             </tbody>
+
         </table>
+
     </div>
 
-    <!-- ================= HORARIOS ESPECIALES ================= -->
-    <div class="card mt-6">
+</div>
 
-        <h3 class="font-semibold mb-3 text-blue-600">
-            Horarios Especiales
-        </h3>
+<!-- ================= HORARIOS ESPECIALES ================= -->
+<div class="card mt-6">
 
-        <?php
-        $stmt = $pdo->query("
-            SELECT 
-                he.*,
-                g.nombre_grupo,
-                c.nombre_curso
-            FROM horarios_especiales he
-            INNER JOIN grupos g ON g.id_grupo = he.id_grupo
-            INNER JOIN cursos c ON c.id_curso = g.id_curso
-            ORDER BY g.id_grupo, he.dia_semana
-        ");
+    <h3 class="font-semibold mb-3 text-blue-600">
+        Horarios Especiales
+    </h3>
 
-        $data = $stmt->fetchAll();
+    <?php
+    $stmt = $pdo->query("
+        SELECT 
+            he.*,
+            g.nombre_grupo,
+            c.nombre_curso
+        FROM horarios_especiales he
+        INNER JOIN grupos g ON g.id_grupo = he.id_grupo
+        INNER JOIN cursos c ON c.id_curso = g.id_curso
+        ORDER BY g.id_grupo, he.dia_semana
+    ");
 
-        $horariosEspeciales = [];
+    $data = $stmt->fetchAll();
 
-        foreach($data as $d){
+    $horariosEspeciales = [];
 
-            $key = $d['nombre_curso'].'-'.$d['nombre_grupo'];
+    foreach($data as $d){
 
-            if(!isset($horariosEspeciales[$key])){
-                $horariosEspeciales[$key] = [
-                    'id_grupo' => $d['id_grupo'], // 🔥 IMPORTANTE
-                    'curso' => $d['nombre_curso'],
-                    'grupo' => $d['nombre_grupo'],
-                    'horarios' => []
-                ];
-            }
+        $key = $d['nombre_curso'].'-'.$d['nombre_grupo'];
 
-            $horariosEspeciales[$key]['horarios'][] =
-                $d['dia_semana'].' '.
-                substr($d['hora_inicio'],0,5).' - '.
-                substr($d['hora_fin'],0,5);
+        if(!isset($horariosEspeciales[$key])){
+            $horariosEspeciales[$key] = [
+                'id_grupo' => $d['id_grupo'],
+                'curso' => $d['nombre_curso'],
+                'grupo' => $d['nombre_grupo'],
+                'horarios' => []
+            ];
         }
-        ?>
 
-        <table class="w-full border rounded overflow-hidden">
+        $horariosEspeciales[$key]['horarios'][] =
+            $d['dia_semana'].' '.
+            substr($d['hora_inicio'],0,5).' - '.
+            substr($d['hora_fin'],0,5);
+    }
+    ?>
 
-            <thead class="bg-blue-700 text-white">
-                <tr>
-                    <th class="p-2">Curso</th>
-                    <th class="p-2">Grupo</th>
-                    <th class="p-2">Horarios</th>
-                    <th class="p-2">Acciones</th>
-                </tr>
-            </thead>
+    <table class="w-full border rounded overflow-hidden">
 
-            <tbody>
-            <?php foreach($horariosEspeciales as $g): ?>
-                <tr class="border-t">
+        <thead class="bg-blue-700 text-white">
+            <tr>
+                <th class="p-2">Curso</th>
+                <th class="p-2">Grupo</th>
+                <th class="p-2">Horarios</th>
+                <th class="p-2">Acciones</th>
+            </tr>
+        </thead>
 
-                    <td class="p-2">
-                        <?= htmlspecialchars($g['curso']) ?>
-                    </td>
+        <tbody>
+        <?php foreach($horariosEspeciales as $g): ?>
+            <tr class="border-t">
 
-                    <td class="p-2">
-                        <?= htmlspecialchars($g['grupo']) ?>
-                    </td>
+                <td class="p-2">
+                    <?= htmlspecialchars($g['curso']) ?>
+                </td>
 
-                    <td class="p-2 text-sm text-gray-700">
-                        <?php foreach($g['horarios'] as $h): ?>
-                            <div><?= $h ?></div>
-                        <?php endforeach; ?>
-                    </td>
+                <td class="p-2">
+                    <?= htmlspecialchars($g['grupo']) ?>
+                </td>
 
-                    <td class="p-2 text-center">
+                <td class="p-2 text-sm text-gray-700">
+                    <?php foreach($g['horarios'] as $h): ?>
+                        <div><?= $h ?></div>
+                    <?php endforeach; ?>
+                </td>
+
+                <td class="p-2 text-center">
+
+                    <?php if($ROLE === 'ADMINISTRADOR'): ?>
 
                         <button onclick="editarHorarioEspecial(<?= $g['id_grupo'] ?>)"
                                 class="bg-yellow-500 text-white px-2 py-1 rounded">
@@ -286,182 +331,106 @@ ob_start();
                             Eliminar
                         </button>
 
-                    </td>
+                    <?php else: ?>
+                        <span class="text-gray-400 text-xs">Solo lectura</span>
+                    <?php endif; ?>
 
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
+                </td>
 
-        </table>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
 
-    </div>
+    </table>
 
-</div> <!-- CIERRE TAB 1 -->
+</div>
 
 
 
-<!-- ========================= -->
-<!-- TAB 2 (HORARIOS ESPECIALES PRO) -->
-<!-- ========================= -->
+<!-- ================= TAB 2 (SOLO ADMIN) ================= -->
+<?php if($ROLE === 'ADMINISTRADOR'): ?>
 <div id="tab2" class="hidden">
 
-<div class="card">
+    <div class="card">
 
-<h3 class="font-semibold mb-4 text-lg text-blue-600">
-Crear Horario Especial
-</h3>
+        <h3 class="font-semibold mb-4 text-lg text-blue-600">
+            Crear Horario Especial
+        </h3>
 
-<!-- CURSO -->
-<select id="curso_especial"
-        class="border p-2 w-full mb-3"
-        onchange="loadGruposEspecial(this.value)">
+        <!-- CURSO -->
+        <select id="curso_especial"
+                class="border p-2 w-full mb-3"
+                onchange="loadGruposEspecial(this.value)">
 
-<option value="">Seleccione curso</option>
+            <option value="">Seleccione curso</option>
 
-<?php foreach($cursos as $c): ?>
-<option value="<?= $c['id_curso'] ?>">
-    <?= htmlspecialchars($c['nombre_curso']) ?>
-</option>
-<?php endforeach; ?>
+            <?php foreach($cursos as $c): ?>
+            <option value="<?= $c['id_curso'] ?>">
+                <?= htmlspecialchars($c['nombre_curso']) ?>
+            </option>
+            <?php endforeach; ?>
 
-</select>
+        </select>
 
-<!-- NOMBRE GRUPO -->
-<input type="text"
-       id="nombre_grupo_especial"
-       class="border p-2 w-full mb-4"
-       placeholder="Nombre del nuevo grupo">
+        <!-- NOMBRE GRUPO -->
+        <input type="text"
+               id="nombre_grupo_especial"
+               class="border p-2 w-full mb-4"
+               placeholder="Nombre del nuevo grupo">
 
-<!-- ================= DÍAS ================= -->
-<div class="grid gap-3">
+        <!-- DÍAS -->
+        <div class="grid gap-3">
 
-<?php
-$dias = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+        <?php
+        $dias = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 
-foreach($dias as $d):
-?>
+        foreach($dias as $d):
+        ?>
 
-<div class="day-card bg-white border rounded-lg p-4 shadow-sm transition-all duration-300 hover:shadow-md">
+        <div class="day-card bg-white border rounded-lg p-4">
 
-    <!-- HEADER -->
-    <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center">
 
-        <label class="font-semibold text-gray-700">
-            <input type="checkbox"
-                   class="mr-2"
-                   onchange="toggleDayEspecial('<?= $d ?>')">
-            <?= $d ?>
-        </label>
+                <label>
+                    <input type="checkbox"
+                           onchange="toggleDayEspecial('<?= $d ?>')">
+                    <?= $d ?>
+                </label>
 
-        <span id="preview-<?= $d ?>"
-              class="text-xs text-gray-400">
-            Sin horario
-        </span>
+                <span id="preview-<?= $d ?>" class="text-xs text-gray-400">
+                    Sin horario
+                </span>
 
-    </div>
+            </div>
 
-    <!-- INPUTS -->
-    <div id="inputs-<?= $d ?>"
-         class="hidden mt-3 space-y-2">
+            <div id="inputs-<?= $d ?>" class="hidden mt-2">
 
-        <input type="time"
-               id="inicio-<?= $d ?>"
-               class="border p-2 w-full rounded">
+                <input type="time" id="inicio-<?= $d ?>" class="border p-2 w-full">
+                <input type="time" id="fin-<?= $d ?>" class="border p-2 w-full mt-1">
 
-        <input type="time"
-               id="fin-<?= $d ?>"
-               class="border p-2 w-full rounded">
-
-    </div>
-
-</div>
-
-<?php endforeach; ?>
-
-</div>
-
-<!-- BOTÓN -->
-<button onclick="guardarHorarioEspecial()"
-        class="mt-5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full transition">
-
-    Guardar Horario Especial
-
-</button>
-
-</div>
-
-</div>     <!-- CIERRE DE TAB 2 -->
-
-<!-- MODAL EDITAR GRUPO -->
-
-<div id="modalEditar" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-
-    <div class="bg-white p-6 rounded-lg w-[400px]">
-
-        <h2 class="text-lg font-bold mb-3">Editar Grupo</h2>
-
-        <input type="hidden" id="edit_id_grupo">
-
-        <input type="text" id="edit_nombre" class="border p-2 w-full mb-2" placeholder="Nombre grupo">
-
-        <input type="time" id="edit_inicio" class="border p-2 w-full mb-2">
-
-        <input type="time" id="edit_fin" class="border p-2 w-full mb-2">
-
-        <div class="mb-2">
-            <label><input type="checkbox" value="Lunes" class="edit_dia"> Lunes</label>
-            <label><input type="checkbox" value="Martes" class="edit_dia"> Martes</label>
-            <label><input type="checkbox" value="Miércoles" class="edit_dia"> Miércoles</label>
-            <label><input type="checkbox" value="Jueves" class="edit_dia"> Jueves</label>
-            <label><input type="checkbox" value="Viernes" class="edit_dia"> Viernes</label>
-            <label><input type="checkbox" value="Sábado" class="edit_dia"> Sábado</label>
-            <label><input type="checkbox" value="Domingo" class="edit_dia"> Domingo</label>
-        </div>
-
-        <div class="flex justify-between mt-4">
-
-            <button onclick="cerrarModal()" class="bg-gray-400 px-3 py-1 rounded">
-                Cancelar
-            </button>
-
-            <button onclick="guardarEdicionGrupo()" class="bg-teal-600 text-white px-3 py-1 rounded">
-                Guardar
-            </button>
+            </div>
 
         </div>
 
-    </div>
-</div>
-
-
-<!-- MODAL EDITAR HORARIO ESPECIAL -->
-
-<div id="modalEspecial" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-
-    <div class="bg-white p-6 rounded w-[500px]">
-
-        <h2 class="font-bold mb-3">Editar Horario Especial</h2>
-
-        <input type="hidden" id="edit_especial_id">
-
-        <div id="edit_dias_container" class="space-y-2"></div>
-
-        <div class="flex justify-between mt-4">
-
-            <button onclick="cerrarEspecial()" class="bg-gray-400 px-3 py-1 rounded">
-                Cancelar
-            </button>
-
-            <button onclick="guardarEspecial()" class="bg-blue-600 text-white px-3 py-1 rounded">
-                Guardar
-            </button>
+        <?php endforeach; ?>
 
         </div>
 
+        <button onclick="guardarHorarioEspecial()"
+                class="mt-5 bg-blue-600 text-white px-4 py-2 rounded w-full">
+
+            Guardar Horario Especial
+
+        </button>
+
     </div>
+
 </div>
+<?php endif; ?>
 
-
+<script>
+    const USER_ROLE = "<?= $ROLE ?>";
+</script>
 
 
 <script>
@@ -906,7 +875,107 @@ function cerrarEspecial(){
 }
 
 
+// =========================
+// RESTRICCIONES DE ROL EN FRONTEND
+// =========================
+function initRoleRestrictions() {
+
+    // ===== SOLO ADMIN =====
+    if (USER_ROLE !== "ADMINISTRADOR") {
+
+        // Bloquear botones críticos
+        document.querySelectorAll("button[onclick*='eliminarGrupo']").forEach(b => {
+            b.disabled = true;
+            b.classList.add("opacity-50", "cursor-not-allowed");
+        });
+
+        document.querySelectorAll("button[onclick*='abrirEditarGrupo']").forEach(b => {
+            b.disabled = true;
+            b.classList.add("opacity-50", "cursor-not-allowed");
+        });
+
+        document.querySelectorAll("button[onclick*='eliminarHorarioEspecial']").forEach(b => {
+            b.disabled = true;
+            b.classList.add("opacity-50", "cursor-not-allowed");
+        });
+
+        document.querySelectorAll("button[onclick*='editarHorarioEspecial']").forEach(b => {
+            b.disabled = true;
+            b.classList.add("opacity-50", "cursor-not-allowed");
+        });
+    }
+
+    // ===== SOLO ADMIN Y SECRETARIO =====
+    if (!["ADMINISTRADOR", "SECRETARIO"].includes(USER_ROLE)) {
+
+        // bloquear forms de creación (por si inspeccionan DOM)
+        document.querySelectorAll("form").forEach(f => {
+            if (f.action.includes("process_cursos") || f.action.includes("process_grupos")) {
+                f.style.opacity = "0.5";
+                f.style.pointerEvents = "none";
+            }
+        });
+    }
+}
+
+document.addEventListener("DOMContentLoaded", initRoleRestrictions);
+
+
+
 </script>
+
+<!-- MODAL EDITAR HORARIO NORMAL -->
+<div id="modalEditar" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div class="bg-white p-6 rounded w-[400px]">
+
+        <h3 class="text-lg font-bold mb-3">Editar Grupo</h3>
+
+        <input type="hidden" id="edit_id_grupo">
+
+        <input id="edit_nombre" class="border p-2 w-full mb-2" placeholder="Nombre">
+
+        <input id="edit_inicio" type="time" class="border p-2 w-full mb-2">
+        <input id="edit_fin" type="time" class="border p-2 w-full mb-2">
+
+        <div class="mb-2">
+            <?php
+            $dias = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+            foreach ($dias as $d): ?>
+                <label>
+                    <input type="checkbox" class="edit_dia" value="<?= $d ?>"> <?= $d ?>
+                </label><br>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="flex justify-end gap-2">
+            <button onclick="cerrarModal()" class="px-3 py-1 bg-gray-400">Cerrar</button>
+            <button onclick="guardarEdicionGrupo()" class="px-3 py-1 bg-green-600 text-white">Guardar</button>
+        </div>
+
+    </div>
+</div>
+
+
+
+<!-- MODAL HORARIO ESPECIAL EDITAR -->
+<div id="modalEspecial" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div class="bg-white p-6 rounded w-[500px]">
+
+        <h3 class="text-lg font-bold mb-3">Editar Horario Especial</h3>
+
+        <input type="hidden" id="edit_especial_id">
+
+        <div id="edit_dias_container"></div>
+
+        <div class="flex justify-end gap-2 mt-3">
+            <button onclick="cerrarEspecial()" class="px-3 py-1 bg-gray-400">Cerrar</button>
+            <button onclick="guardarEspecial()" class="px-3 py-1 bg-blue-600 text-white">Guardar</button>
+        </div>
+
+    </div>
+</div>
+
+
 
 <?php
 $content = ob_get_clean();

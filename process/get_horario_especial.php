@@ -6,7 +6,8 @@ header('Content-Type: application/json');
 if (!isset($_GET['id_grupo'])) {
     echo json_encode([
         "success" => false,
-        "message" => "Falta id_grupo"
+        "message" => "Falta id_grupo",
+        "data" => []
     ]);
     exit;
 }
@@ -26,6 +27,7 @@ $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 echo json_encode([
     "success" => true,
-    "data" => $data
+    "data" => $data ?? []
 ]);
+
 
