@@ -658,7 +658,7 @@ function eliminarGrupo(id){
 // FUNCIONES DE ELIMINACIÓN DE HORARIO ESPECIAL
 // =========================
 
-function eliminarHorarioEspecial(grupo){
+function eliminarHorarioEspecial(id){
 
     if(!confirm("¿Eliminar todos los horarios especiales de este grupo?")){
         return;
@@ -669,22 +669,26 @@ function eliminarHorarioEspecial(grupo){
         headers:{
             "Content-Type":"application/x-www-form-urlencoded"
         },
-        body: "grupo=" + encodeURIComponent(grupo)
+        body: "id_grupo=" + encodeURIComponent(id)
     })
     .then(res => res.text())
     .then(resp => {
 
-        alert("Horario especial eliminado");
-        location.reload();
+        console.log(resp);
+
+        if(resp.trim() === "ok"){
+            alert("Horario especial eliminado");
+            location.reload();
+        } else {
+            alert("Error: " + resp);
+        }
 
     })
     .catch(() => {
-
-        alert("Error al eliminar");
-
+        alert("Error de red");
     });
-
 }
+
 
 // =========================
 // FUNCIONES DE EDICIÓN DE GRUPO
