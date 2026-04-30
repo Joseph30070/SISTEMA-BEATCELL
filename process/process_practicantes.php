@@ -2,21 +2,29 @@
 require_once __DIR__ . '/../config/auth.php';
 require_once __DIR__ . '/../config/db.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
-// Solo admin puede registrar practicantes
-checkRole(['ADMINISTRADOR']);
+try {
+    // Solo admin puede registrar practicantes
+    checkRole(['ADMINISTRADOR']);
 
-$action = $_POST['action'] ?? '';
+    $action = $_POST['action'] ?? '';
 
-if ($action === 'registrar') {
-    registrarPracticante();
-} elseif ($action === 'actualizar') {
-    actualizarPracticante();
-} elseif ($action === 'dar_baja') {
-    darBajaPracticante();
-} else {
-    echo json_encode(['success' => false, 'message' => 'Acción no válida']);
+    if ($action === 'registrar') {
+        registrarPracticante();
+    } elseif ($action === 'actualizar') {
+        actualizarPracticante();
+    } elseif ($action === 'dar_baja') {
+        darBajaPracticante();
+    } elseif ($action === 'reactivar') {
+        reactivarPracticante();
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Acción no válida']);
+        exit;
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     exit;
 }
 
@@ -41,6 +49,7 @@ function registrarPracticante() {
     $telefono_apoderado = trim($_POST['telefono_apoderado'] ?? null) ?: null;
     $notificar_emergencia = $_POST['notificar_emergencia'] ?? null;
     $observacion = trim($_POST['observacion'] ?? null);
+    $fecha_registro = trim($_POST['fecha_registro'] ?? '') ?: date('Y-m-d');
 
     // Validaciones
     if (empty($nombre)) {
@@ -49,17 +58,37 @@ function registrarPracticante() {
     }
 
     if (!empty($dni) && strlen($dni) < 8) {
-        echo json_encode(['success' => false, 'message' => 'DNI inválido']);
+        echo json_encode(['success' => false, 'message' => 'DNI inválido (mínimo 8 dígitos)']);
         exit;
     }
 
-    if (!empty($telefono) && !preg_match('/^[0-9]{7,}$/', $telefono)) {
-        echo json_encode(['success' => false, 'message' => 'Teléfono inválido']);
+    if (!empty($telefono) && !preg_match('/^[0-9]{6,}$/', $telefono)) {
+        echo json_encode(['success' => false, 'message' => 'Teléfono inválido (mínimo 6 dígitos)']);
+        exit;
+    }
+
+    if (!empty($telefono_emergencia) && !preg_match('/^[0-9]{6,}$/', $telefono_emergencia)) {
+        echo json_encode(['success' => false, 'message' => 'Teléfono de emergencia inválido (mínimo 6 dígitos)']);
         exit;
     }
 
     if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         echo json_encode(['success' => false, 'message' => 'Email inválido']);
+        exit;
+    }
+
+    if (!empty($correo_apoderado) && !filter_var($correo_apoderado, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(['success' => false, 'message' => 'Email del apoderado inválido']);
+        exit;
+    }
+
+    if (!empty($telefono_apoderado) && !preg_match('/^[0-9]{6,}$/', $telefono_apoderado)) {
+        echo json_encode(['success' => false, 'message' => 'Teléfono del apoderado inválido (mínimo 6 dígitos)']);
+        exit;
+    }
+
+    if (!empty($dni_apoderado) && strlen($dni_apoderado) < 8) {
+        echo json_encode(['success' => false, 'message' => 'DNI del apoderado inválido (mínimo 8 dígitos)']);
         exit;
     }
 
@@ -82,7 +111,7 @@ function registrarPracticante() {
         $stmt = $pdo->prepare("
             INSERT INTO practicantes 
             (nombre, dni, telefono, telefono_emergencia, edad, email, direccion, id_carrera, modalidad_horario, horario, nombre_apoderado, dni_apoderado, correo_apoderado, telefono_apoderado, notificar_emergencia, observacion, fecha_registro)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -101,7 +130,8 @@ function registrarPracticante() {
             !empty($correo_apoderado) ? $correo_apoderado : null,
             !empty($telefono_apoderado) ? $telefono_apoderado : null,
             !empty($notificar_emergencia) ? $notificar_emergencia : null,
-            !empty($observacion) ? $observacion : null
+            !empty($observacion) ? $observacion : null,
+            $fecha_registro
         ]);
 
         echo json_encode([
@@ -221,6 +251,27 @@ function darBajaPracticante() {
 
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'message' => 'Error al dar de baja: ' . $e->getMessage()]);
+    }
+}
+
+function reactivarPracticante() {
+    global $pdo;
+
+    $id_practicante = $_POST['id_practicante'] ?? null;
+
+    if (!$id_practicante) {
+        echo json_encode(['success' => false, 'message' => 'ID inválido']);
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare("UPDATE practicantes SET fecha_baja = NULL WHERE id_practicante = ?");
+        $stmt->execute([$id_practicante]);
+
+        echo json_encode(['success' => true, 'message' => 'Practicante reactivado exitosamente']);
+
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Error al reactivar: ' . $e->getMessage()]);
     }
 }
 ?>
