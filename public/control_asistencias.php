@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-checkRole(['ADMINISTRADOR', 'ASISTENTE']);
+checkRole(['ADMINISTRADOR', 'SECRETARIO']);
 
 $title  = "Asistencia de Estudiantes";
 $active = "asistencia";

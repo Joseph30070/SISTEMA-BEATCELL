@@ -1,34 +1,71 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-require __DIR__ . '/../config/db.php';
+$pdo = require __DIR__ . '/../config/db.php';
+
+// 🔐 Permitir todos los roles del sistema
+checkRole(['ADMINISTRADOR', 'SECRETARIO', 'ASISTENTE']);
 
 $title  = "Perfil del Usuario";
 $active = "perfil";
 
-// Obtener los datos del usuario
-$stmt = $pdo->prepare("SELECT id, fullname, email, role, profile_image FROM usuarios WHERE id = :id");
-$stmt->execute(['id' => $_SESSION['user_id']]);
+// Obtener datos del usuario
+$stmt = $pdo->prepare("
+    SELECT id_usuario, nombre, usuario, rol 
+    FROM usuarios 
+    WHERE id_usuario = ?
+");
+
+$stmt->execute([$_SESSION['id_usuario']]);
 $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Avatar
-$letraAvatar = strtoupper(substr($usuario['fullname'], 0, 1));
-$rutaImagen  = !empty($usuario['profile_image']) ? $usuario['profile_image'] : null;
+// Avatar (letra)
+$letraAvatar = strtoupper(substr($usuario['nombre'], 0, 1));
 
-// Etiqueta de rol
-$roleLabel = strtoupper($usuario['role'] ?? '');
-$roleColor = 'bg-emerald-500';
-if ($roleLabel === 'ASESOR')      $roleColor = 'bg-blue-500';
-if ($roleLabel === 'ADMISION')    $roleColor = 'bg-amber-500';
+// =========================
+// CONFIGURACIÓN POR ROL
+// =========================
+$roleLabel = strtoupper($usuario['rol'] ?? '');
+
+$roleColor = 'bg-gray-500';
+$roleDescripcion = '';
+$headerColor = 'from-gray-500 to-gray-400';
+$rutaImagen = null;
+
+switch ($roleLabel) {
+
+    case 'ADMINISTRADOR':
+        $roleColor = 'bg-red-600';
+        $headerColor = 'from-red-700 via-red-500 to-orange-500';
+        $roleDescripcion = 'Acceso completo al sistema. Control total de usuarios, cursos y reportes.';
+        $rutaImagen = '../img/admin.jpg';
+    break;
+
+    case 'SECRETARIO':
+        $roleColor = 'bg-blue-600';
+        $headerColor = 'from-blue-700 via-blue-500 to-cyan-400';
+        $roleDescripcion = 'Gestiona alumnos, asistencia y mantiene el orden del sistema.';
+        $rutaImagen = '../img/secretario.jpg';
+    break;
+
+    case 'ASISTENTE':
+        $roleColor = 'bg-green-600';
+        $headerColor = 'from-green-600 via-emerald-400 to-lime-300';
+        $roleDescripcion = 'Apoya en el registro de asistencia y consulta de información.';
+        $rutaImagen = '../img/asistente.jpg';
+    break;
+}
 
 ob_start();
 ?>
 
-<div class="max-w-5xl mx-auto mt-10">
-  <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
+<div class="max-w-5xl mx-auto mt-10 animate-fade-in">
+
+  <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100 transition hover:shadow-2xl duration-300">
 
     <!-- ENCABEZADO -->
-    <div class="bg-gradient-to-r from-emerald-500 via-teal-500 to-green-400 px-10 py-8 text-white relative">
-      <!-- Botón cerrar sesión (único) -->
+    <div class="bg-gradient-to-r <?= $headerColor ?> px-10 py-8 text-white relative">
+
+      <!-- Logout -->
       <div class="absolute top-4 right-4">
         <a href="logout.php"
            class="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-1.5 rounded-full transition">
@@ -37,120 +74,137 @@ ob_start();
       </div>
 
       <div class="flex items-center gap-6">
+
         <!-- Avatar -->
-        <div class="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center overflow-hidden shadow-lg border border-white/30">
+        <div class="w-32 h-32 rounded-full bg-white/10 flex items-center justify-center overflow-hidden border-4 border-white/40 shadow-xl hover:scale-105 transition duration-300">
+
           <?php if ($rutaImagen): ?>
-            <img src="<?= htmlspecialchars($rutaImagen) ?>" alt="Foto de perfil"
-                 class="w-full h-full object-cover">
+            <img src="<?= htmlspecialchars($rutaImagen) ?>"
+                 class="w-full h-full object-cover scale-110">
           <?php else: ?>
-            <span class="text-4xl font-bold">
-              <?= $letraAvatar ?>
-            </span>
+            <span class="text-4xl font-bold"><?= $letraAvatar ?></span>
           <?php endif; ?>
+
         </div>
 
-        <div class="flex flex-col gap-2">
-          <div class="text-xs tracking-[0.2em] uppercase text-white/70 font-semibold">
-            Perfil de usuario
-          </div>
-          <h1 class="text-3xl font-bold leading-tight">
-            <?= htmlspecialchars($usuario['fullname']) ?>
+        <div>
+          <h1 class="text-3xl font-bold">
+            <?= htmlspecialchars($usuario['nombre']) ?>
           </h1>
-          <p class="text-sm text-emerald-50">
-            <?= htmlspecialchars($usuario['email']) ?>
+
+          <p class="text-sm opacity-90">
+            Usuario: <?= htmlspecialchars($usuario['usuario']) ?>
           </p>
 
-          <div class="flex flex-wrap gap-3 mt-1">
-            <span class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full <?= $roleColor ?> text-white">
+          <div class="mt-2">
+            <span class="px-3 py-1 rounded-full text-xs text-white <?= $roleColor ?>">
               <?= $roleLabel ?>
             </span>
-            <span class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-white/15 text-white border border-white/30">
-              ID usuario: <?= htmlspecialchars($usuario['id']) ?>
-            </span>
           </div>
+
+          <!-- Descripción del rol -->
+          <p class="text-xs opacity-80 italic mt-2">
+            <?= $roleDescripcion ?>
+          </p>
         </div>
+
       </div>
     </div>
 
     <!-- CUERPO -->
-    <div class="px-8 py-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Columna izquierda: información personal -->
-      <div class="md:col-span-2 bg-gray-50 rounded-xl border border-gray-200 p-6 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-800">Información Personal</h2>
-            <span class="text-xs text-gray-400">Datos básicos de tu cuenta</span>
+    <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <!-- INFO PERSONAL -->
+      <div class="md:col-span-2 bg-gray-50 p-6 rounded-xl border hover:shadow-lg transition duration-300">
+
+        <h2 class="text-lg font-semibold mb-4">
+          Información Personal
+        </h2>
+
+        <div class="space-y-4 text-sm">
+
+          <div class="hover:translate-x-1 transition">
+            <span class="text-gray-500">Nombre:</span><br>
+            <strong><?= htmlspecialchars($usuario['nombre']) ?></strong>
           </div>
 
-          <div class="space-y-4 text-sm">
-            <div>
-              <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide">
-                Nombre completo
-              </p>
-              <p class="text-gray-900 font-medium">
-                <?= htmlspecialchars($usuario['fullname']) ?>
-              </p>
-            </div>
-
-            <div>
-              <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide">
-                Correo electrónico
-              </p>
-              <p class="text-gray-900 font-medium">
-                <?= htmlspecialchars($usuario['email']) ?>
-              </p>
-            </div>
+          <div class="hover:translate-x-1 transition">
+            <span class="text-gray-500">Usuario:</span><br>
+            <strong><?= htmlspecialchars($usuario['usuario']) ?></strong>
           </div>
 
-          <!-- Texto informativo (reemplaza las pastillas anteriores) -->
-          <p class="mt-6 text-xs text-gray-500 leading-relaxed">
-            Estos datos se usan para iniciar sesión en el sistema. Si cambias tu correo desde
-            <span class="font-semibold">Editar Perfil</span>, recuerda que será tu nuevo usuario de acceso.
-          </p>
         </div>
+
+        <!-- PERMISOS -->
+        <div class="mt-6 bg-white border rounded-xl p-5 hover:shadow-md transition duration-300">
+
+          <h3 class="font-semibold mb-2">Permisos del Rol</h3>
+
+          <p class="text-sm text-gray-600 mb-3">
+            <?= $roleDescripcion ?>
+          </p>
+
+          <ul class="text-sm list-disc pl-5 space-y-1">
+
+            <?php if($roleLabel === 'ADMINISTRADOR'): ?>
+                <li>Gestionar usuarios</li>
+                <li>Crear cursos y grupos</li>
+                <li>Editar horarios</li>
+                <li>Ver reportes completos</li>
+
+            <?php elseif($roleLabel === 'SECRETARIO'): ?>
+                <li>Registrar alumnos</li>
+                <li>Tomar asistencia</li>
+                <li>Ver historial</li>
+
+            <?php elseif($roleLabel === 'ASISTENTE'): ?>
+                <li>Registrar asistencia</li>
+                <li>Consultar información</li>
+
+            <?php endif; ?>
+
+          </ul>
+
+        </div>
+
       </div>
 
-      <!-- Columna derecha: estado de la cuenta -->
-      <div class="bg-white rounded-xl border border-gray-200 p-6 flex flex-col justify-between">
-        <div class="space-y-4">
-          <h2 class="text-lg font-semibold text-gray-800 mb-2">Estado de la cuenta</h2>
+      <!-- PANEL DERECHO -->
+      <div class="bg-white p-6 rounded-xl border flex flex-col justify-between hover:shadow-lg transition duration-300">
 
-          <div>
-            <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">
-              Estado actual
-            </p>
-            <span class="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
-              Activo
-            </span>
+        <div>
+          <h2 class="text-lg font-semibold mb-4">
+            Estado de Cuenta
+          </h2>
+
+          <div class="mb-4">
+            <span class="text-gray-500 text-sm">Estado:</span><br>
+            <span class="text-green-600 font-semibold">Activo</span>
           </div>
 
           <div>
-            <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">
-              Rol
-            </p>
-            <p class="text-gray-900 font-medium">
-              <?= $roleLabel ?>
-            </p>
+            <span class="text-gray-500 text-sm">Rol:</span><br>
+            <strong><?= $roleLabel ?></strong>
           </div>
-
-          <p class="text-xs text-gray-500 leading-relaxed">
-            Cuida tu cuenta usando una contraseña segura 
-          </p>
         </div>
 
-        <!-- Solo botón Editar Perfil (ya no hay Cerrar Sesión aquí) -->
-        <div class="mt-6 flex justify-end">
+        <div class="mt-6">
           <a href="editar_perfil.php"
-             class="inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium shadow-sm transition">
+             class="block text-center bg-teal-600 text-white py-2 rounded hover:bg-teal-700 hover:scale-105 transition duration-200">
             Editar Perfil
           </a>
         </div>
+
       </div>
+
     </div>
 
   </div>
+
 </div>
 
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/layout.php';
+?>
+
