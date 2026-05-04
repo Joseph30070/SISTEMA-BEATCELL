@@ -502,7 +502,14 @@ ob_start();
                         <?= $a['estado'] ?>
                     </td>
 
-                    <td class="p-2 flex gap-2">
+                    <td class="p-2 flex gap-2 items-center">
+
+                        <button
+                            onclick="exportarPDFAlumno(<?= $a['id_alumno'] ?>)"
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded flex items-center gap-2 text-sm">
+                            <i class="fas fa-file-pdf"></i>
+                            PDF
+                        </button>
 
                         <!-- EDITAR: ADMIN y SECRETARIO -->
                         <?php if(in_array($ROLE, ['ADMINISTRADOR','SECRETARIO'])): ?>
@@ -900,6 +907,70 @@ function exportarExcel(){
 
 
 
+
+function exportarPDFAlumno(id){
+    const alumno = alumnosData.find(a => a.id_alumno == id);
+    if(!alumno){
+        alert('Alumno no encontrado');
+        return;
+    }
+
+    const fecha = new Date().toLocaleDateString();
+    const html = `
+    <div style="font-family: Arial, sans-serif; padding:20px; color: #111;">
+        <div style="display:flex; align-items:center; gap:15px; border-bottom:3px solid #9b00ff; padding-bottom:10px; margin-bottom:15px;">
+            <img src="../img/logo-beatcell.png" width="70" alt="Beatcell">
+            <div>
+                <h1 style="margin:0; color:#9b00ff; font-size:26px;">Academia Smartcell</h1>
+                <p style="margin:4px 0 0; font-size:14px; color:#555;">Plantilla De Inscripción</p>
+            </div>
+        </div>
+
+        <p style="margin:0 0 15px; font-size:12px; color:#555;"><strong>Fecha de generación:</strong> ${fecha}</p>
+
+        <h2 style="font-size:16px; margin-bottom:8px; color:#111;">Datos Del Alumno (A)</h2>
+        <table style="width:100%; font-size:12px; border-collapse: collapse; margin-bottom:18px;">
+            <tr><td style="width:25%; padding:8px 6px; font-weight:700;">Nombres y Apellidos:</td><td colspan="3" style="padding:8px 6px;">${alumno.nombre ?? ''} ${alumno.apellidos ?? ''}</td></tr>
+            <tr><td style="padding:8px 6px; font-weight:700;">Número de DNI:</td><td style="padding:8px 6px;">${alumno.dni ?? ''}</td><td style="padding:8px 6px; font-weight:700;">e-mail:</td><td style="padding:8px 6px;">${alumno.email ?? ''}</td></tr>
+            <tr><td style="padding:8px 6px; font-weight:700;">Dirección:</td><td colspan="3" style="padding:8px 6px;">${alumno.direccion ?? ''}</td></tr>
+            <tr><td style="padding:8px 6px; font-weight:700;">Nº Celular (1):</td><td style="padding:8px 6px;">${alumno.telefono ?? ''}</td><td style="padding:8px 6px; font-weight:700;">Nº Celular (2):</td><td style="padding:8px 6px;">${alumno.telefonopadres ?? ''}</td></tr>
+            <tr><td style="padding:8px 6px; font-weight:700;">Curso de inscripción:</td><td style="padding:8px 6px;">${alumno.nombre_curso ?? ''}</td><td style="padding:8px 6px; font-weight:700;">Fecha de inscripción:</td><td style="padding:8px 6px;">${alumno.fecha_registro ?? ''}</td></tr>
+            <tr><td style="padding:8px 6px; font-weight:700;">Ciclo:</td><td style="padding:8px 6px;">${alumno.tipo_ciclo ?? ''}</td><td style="padding:8px 6px; font-weight:700;">Captación:</td><td style="padding:8px 6px;">${alumno.medio_captacion ?? ''}</td></tr>
+        </table>
+
+        <h2 style="font-size:16px; margin-bottom:8px; color:#111;">Datos del representante</h2>
+        <table style="width:100%; font-size:12px; border-collapse: collapse; margin-bottom:18px;">
+            <tr><td style="width:25%; padding:8px 6px; font-weight:700;">Nombres y Apellidos:</td><td style="padding:8px 6px;">${alumno.nombre_apoderado ?? ''}</td></tr>
+            <tr><td style="padding:8px 6px; font-weight:700;">DNI:</td><td style="padding:8px 6px;">${alumno.dni_apoderado ?? ''}</td></tr>
+            <tr><td style="padding:8px 6px; font-weight:700;">Correo electrónico:</td><td style="padding:8px 6px;">${alumno.correo_apoderado ?? ''}</td></tr>
+            <tr><td style="padding:8px 6px; font-weight:700;">Teléfono de contacto:</td><td style="padding:8px 6px;">${alumno.telefonoapoderado ?? ''}</td></tr>
+            <tr><td style="padding:8px 6px; font-weight:700;">En caso de emergencia notificar a:</td><td style="padding:8px 6px;">${alumno.notificar_emergencia ?? ''}</td></tr>
+        </table>
+
+        <div style="border:1px solid #ccc; border-radius:10px; background:#f8f8f8; padding:12px; margin-bottom:18px; font-size:12px;">
+            <p style="margin:0 0 8px; font-weight:700;">IMPORTANTE:</p>
+            <ul style="margin:0; padding-left:18px;">
+                <li>Mensualidad: Pago puntual de la cuota según la fecha de vencimiento.</li>
+                <li>Materiales: El alumno puede traer sus propios insumos o adquirirlos en la academia para sus prácticas.</li>
+                <li>Certificación: Pago del derecho de trámite al finalizar el programa para la emisión del diploma.</li>
+            </ul>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:11px; color:#555;">
+            <span>Estado: ${alumno.estado ?? ''}</span>
+            <span>Fecha Baja: ${alumno.fecha_baja ?? '—'}</span>
+        </div>
+        <p style="margin-top:15px; font-size:11px; color:#9b00ff;">Reporte generado automáticamente por BEATCELL</p>
+    </div>
+    `;
+
+    html2pdf().set({
+        margin: 0.4,
+        filename: `ficha_alumno_${id}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { orientation: 'portrait' }
+    }).from(html).save();
+}
 
 function exportarPDF(){
 
