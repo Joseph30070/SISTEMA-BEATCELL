@@ -35,7 +35,7 @@ ob_start();
 
     <!-- INFORMACIÓN ALUMNOS -->
     <?php if (in_array($ROLE, ['ADMINISTRADOR','SECRETARIO','ASISTENTE'], true)): ?>
-        <a href="registro.php?tab=info" class="block bg-white rounded shadow p-6 hover:shadow-md transition">
+        <a href="registro_alumnos.php?tab=info" class="block bg-white rounded shadow p-6 hover:shadow-md transition">
             <div class="text-blue-600 text-3xl mb-3">
                 <i class="fas fa-id-card"></i>
             </div>

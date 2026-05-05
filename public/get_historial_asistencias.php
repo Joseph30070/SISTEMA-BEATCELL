@@ -4,7 +4,7 @@ require_once __DIR__ . '/../config/auth.php';
 
 checkRole([
     'ADMINISTRADOR',
-    'ASESOR'
+    'SECRETARIO'
 ]);
 
 header('Content-Type: application/json');
