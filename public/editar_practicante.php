@@ -55,11 +55,11 @@ $carreras = $stmt->fetchAll();
         <div class="grid md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm mb-1">Hora Inicio *</label>
-                <input type="time" id="horaInicioEditar" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                <input type="time" id="horaInicioEditar" name="hora_inicio" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
             </div>
             <div>
                 <label class="block text-sm mb-1">Hora Fin *</label>
-                <input type="time" id="horaFinEditar" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                <input type="time" id="horaFinEditar" name="hora_fin" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
             </div>
         </div>
         <div class="grid md:grid-cols-4 gap-3">
