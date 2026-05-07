@@ -18,6 +18,8 @@ try {
         darBajaPracticante();
     } elseif ($action === 'reactivar') {
         reactivarPracticante();
+    } elseif ($action === 'eliminar') {
+        eliminarPracticante();
     } else {
         echo json_encode(['success' => false, 'message' => 'Acción no válida']);
         exit;
@@ -272,6 +274,33 @@ function reactivarPracticante() {
 
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'message' => 'Error al reactivar: ' . $e->getMessage()]);
+    }
+}
+
+// ==================== ELIMINAR ====================
+function eliminarPracticante() {
+    global $pdo;
+
+    $id_practicante = $_POST['id_practicante'] ?? null;
+
+    if (!$id_practicante) {
+        echo json_encode(['success' => false, 'message' => 'ID inválido']);
+        exit;
+    }
+
+    try {
+        // Primero eliminar registros de asistencias
+        $stmt = $pdo->prepare("DELETE FROM asistencias_practicantes WHERE id_practicante = ?");
+        $stmt->execute([$id_practicante]);
+
+        // Luego eliminar el practicante
+        $stmt = $pdo->prepare("DELETE FROM practicantes WHERE id_practicante = ?");
+        $stmt->execute([$id_practicante]);
+
+        echo json_encode(['success' => true, 'message' => 'Practicante eliminado exitosamente']);
+
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Error al eliminar: ' . $e->getMessage()]);
     }
 }
 ?>

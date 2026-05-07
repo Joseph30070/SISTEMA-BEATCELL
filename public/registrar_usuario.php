@@ -423,6 +423,8 @@ oninput="this.value=this.value.replace(/[^0-9]/g,'')">
                 <?php else: ?>
                 <button type="button" onclick="window.reactivarPracticante(<?= $p['id_practicante'] ?>)"
                   class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700">Reactivar</button>
+                <button type="button" onclick="window.eliminarPracticante(<?= $p['id_practicante'] ?>)"
+                  class="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700">Eliminar</button>
                 <?php endif; ?>
               </td>
             </tr>
@@ -958,6 +960,28 @@ window.reactivarPracticante = function(id){
                     location.reload();
                 } else {
                     alert(data.message || 'Error al reactivar');
+                }
+            })
+            .catch(() => alert('Error al procesar solicitud'));
+    }
+}
+
+window.eliminarPracticante = function(id){
+    if(confirm('¿Está seguro que desea eliminar este practicante? Esta acción no se puede deshacer.')){
+        const formData = new FormData();
+        formData.append('action', 'eliminar');
+        formData.append('id_practicante', id);
+
+        const processUrl = '../process/process_practicantes.php';
+
+        fetch(processUrl, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success){
+                    alert('Practicante eliminado exitosamente');
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error al eliminar');
                 }
             })
             .catch(() => alert('Error al procesar solicitud'));
