@@ -537,7 +537,13 @@ ob_start();
 
                                 <a href="../process/process_reactivar_alumno.php?id=<?= $a['id_alumno'] ?>"
                                 class="bg-green-500 text-white px-3 py-1 rounded text-sm">
-                                Reactivar
+                                    Reactivar
+                                </a>
+
+                                <a href="../process/process_eliminar_alumno.php?id=<?= $a['id_alumno'] ?>"
+                                onclick="return confirm('⚠️ ¿Estás completamente seguro de eliminar este alumno?\n\nSe eliminarán sus matrículas y esta acción NO se puede deshacer.')"
+                                class="bg-black text-white px-3 py-1 rounded text-sm">
+                                    Eliminar
                                 </a>
 
                             <?php endif; ?>
