@@ -127,16 +127,61 @@ ob_start();
                 <tr>
                     <th class="p-3 text-left">ID</th>
                     <th class="p-3 text-left">Nombre Curso</th>
+                    <th class="p-3 text-center">Acciones</th>
                 </tr>
             </thead>
 
             <tbody class="bg-white">
             <?php foreach($cursos as $c): ?>
-                <tr class="border-t hover:bg-gray-50">
-                    <td class="p-2"><?= $c['id_curso'] ?></td>
-                    <td class="p-2"><?= htmlspecialchars($c['nombre_curso']) ?></td>
-                </tr>
-            <?php endforeach; ?>
+    <tr class="border-t hover:bg-gray-50">
+
+        <td class="p-2">
+            <?= $c['id_curso'] ?>
+        </td>
+
+        <td class="p-2">
+            <?= htmlspecialchars($c['nombre_curso']) ?>
+        </td>
+
+        <td class="p-2 text-center space-x-2">
+
+            <?php if($ROLE === 'ADMINISTRADOR'): ?>
+
+                        <button
+                            onclick="editarCurso(
+                                <?= $c['id_curso'] ?>,
+                                '<?= htmlspecialchars($c['nombre_curso'], ENT_QUOTES) ?>'
+                            )"
+                            class="bg-indigo-600 hover:bg-indigo-700
+                                text-white px-3 py-1 rounded-lg text-sm
+                                shadow transition duration-200">
+
+                            ✏️ Editar
+
+                        </button>
+
+                        <button
+                            onclick="eliminarCurso(<?= $c['id_curso'] ?>)"
+                            class="bg-slate-700 hover:bg-slate-800
+                                text-white px-3 py-1 rounded-lg text-sm
+                                shadow transition duration-200 ml-1">
+
+                            🗑 Eliminar
+
+                        </button>
+
+                    <?php else: ?>
+
+                        <span class="text-gray-400 text-xs">
+                            Solo lectura
+                        </span>
+
+                    <?php endif; ?>
+
+                </td>
+
+            </tr>
+        <?php endforeach; ?>
             </tbody>
 
         </table>
@@ -623,6 +668,91 @@ function guardarHorarioEspecial(){
     });
 
 }
+
+// =========================
+// FUNCIONES CURSOS EDITAR/ELIMINAR
+// =========================
+
+function eliminarCurso(id){
+
+    if(!confirm("¿Seguro que deseas eliminar este curso?")){
+        return;
+    }
+
+    fetch("../process/process_cursos.php", {
+        method: "POST",
+        headers:{
+            "Content-Type":"application/x-www-form-urlencoded"
+        },
+        body: "accion=eliminar&id_curso=" + encodeURIComponent(id)
+    })
+    .then(res => res.text())
+    .then(resp => {
+
+        console.log(resp);
+
+        if(resp.trim() === "ok"){
+            alert("Curso eliminado correctamente");
+            location.reload();
+        }else{
+            alert(resp);
+        }
+
+    })
+    .catch(() => {
+        alert("Error de conexión");
+    });
+}
+
+
+
+function editarCurso(id, nombreActual){
+
+    let nuevoNombre = prompt(
+        "Editar nombre del curso:",
+        nombreActual
+    );
+
+    if(nuevoNombre === null){
+        return;
+    }
+
+    nuevoNombre = nuevoNombre.trim();
+
+    if(nuevoNombre === ""){
+        alert("El nombre no puede estar vacío");
+        return;
+    }
+
+    fetch("../process/process_cursos.php", {
+        method: "POST",
+        headers:{
+            "Content-Type":"application/x-www-form-urlencoded"
+        },
+        body:
+            "accion=editar" +
+            "&id_curso=" + encodeURIComponent(id) +
+            "&nombre=" + encodeURIComponent(nuevoNombre)
+    })
+    .then(res => res.text())
+    .then(resp => {
+
+        console.log(resp);
+
+        if(resp.trim() === "ok"){
+            alert("Curso actualizado correctamente");
+            location.reload();
+        }else{
+            alert(resp);
+        }
+
+    })
+    .catch(() => {
+        alert("Error de conexión");
+    });
+}
+
+
 
 // =========================
 // FUNCIONES DE ELIMINACIÓN DE GRUPO
