@@ -307,6 +307,7 @@ CREATE TABLE asistencias_practicantes (
 
     tareas_asignadas TEXT,
     tareas_terminadas TEXT,
+    observacion TEXT,
 
     FOREIGN KEY (id_practicante)
         REFERENCES practicantes(id_practicante)
