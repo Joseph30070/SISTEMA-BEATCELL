@@ -187,7 +187,12 @@ CREATE TABLE practicantes (
 
     id_carrera INT,
 
-    horario VARCHAR(50),
+    tipo_horario ENUM(
+        'NORMAL',
+        'FLEXIBLE'
+    ) DEFAULT 'NORMAL',
+
+    horario TEXT,
 
     edad INT,
     email VARCHAR(150),

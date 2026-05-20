@@ -47,26 +47,26 @@ if ($tipo === 'practicante') {
 
 try {
 
-    if ($estado === "Asistió") {
+    if ($tipo === 'practicante' && ($estado === "Asistió" || $estado === "Tarde")) {
 
-        $sql = "
-            UPDATE {$tabla}
-            SET 
-                estado = :estado,
-                hora_entrada = NOW()
-            WHERE id_asistencia = :id
-        ";
+    $sql = "
+        UPDATE asistencias_practicantes
+        SET 
+            estado = :estado,
+            hora_entrada = COALESCE(hora_entrada, CURTIME())
+        WHERE id_asistencia = :id
+    ";
 
-    } else {
+} else {
 
-        $sql = "
-            UPDATE {$tabla}
-            SET 
-                estado = :estado
-            WHERE id_asistencia = :id
-        ";
+    $sql = "
+        UPDATE {$tabla}
+        SET 
+            estado = :estado
+        WHERE id_asistencia = :id
+    ";
 
-    }
+}
 
     $stmt = $pdo->prepare($sql);
 

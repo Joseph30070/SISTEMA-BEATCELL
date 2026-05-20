@@ -260,8 +260,7 @@ ob_start();
     <div class="grid">
       <div>
         <label>Fecha</label>
-        <input type="date" id="fechaPracticantes" class="border px-3 py-2 rounded w-full" value="<?= date('Y-m-d') ?>">
-      </div>
+        <input type="date" id="fechaPracticantes" class="border px-3 py-2 rounded w-full" value="<?= date('Y-m-d') ?>">      </div>
 
       <div>
         <label>Carrera</label>
@@ -310,7 +309,7 @@ ob_start();
             <th>DNI</th>
             <th>Teléfono</th>
             <th>Carrera</th>
-            <th>Horario</th>
+            <th>Horario de hoy</th>     
             <th class="center">Acción</th>
             <th class="center">Estado</th>
             <th class="center">Salida</th>
@@ -527,16 +526,58 @@ ob_start();
 
   <canvas id="graficaResumenMensual" height="100"></canvas>
 
-
-
-
+</div>
 
 </div>
 
+<!-- ========================= -->
+<!-- MODAL EDITAR ASISTENCIA PRACTICANTE -->
+<!-- ========================= -->
+<div id="modalEditarAsistenciaPracticante" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded shadow-lg p-6 w-full max-w-md">
+    <h3 class="font-semibold mb-4">Editar asistencia del practicante</h3>
+
+    <input type="hidden" id="editIdAsistenciaPracticante">
+
+    <div class="mb-3">
+      <label class="block mb-1">Estado</label>
+      <select id="editEstadoPracticante" class="border px-3 py-2 rounded w-full">
+        <option value="Pendiente">Pendiente</option>
+        <option value="Asistió">Asistió</option>
+        <option value="Tarde">Tarde</option>
+        <option value="Ausente">Ausente</option>
+        <option value="Justificado">Justificado</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="block mb-1">Hora entrada</label>
+      <input type="time" id="editHoraEntradaPracticante" class="border px-3 py-2 rounded w-full">
+    </div>
+
+    <div class="mb-3">
+      <label class="block mb-1">Hora salida</label>
+      <input type="time" id="editHoraSalidaPracticante" class="border px-3 py-2 rounded w-full">
+    </div>
+
+    <div class="mb-4">
+      <label class="block mb-1">Observación / motivo</label>
+      <textarea id="editObservacionPracticante" class="border px-3 py-2 rounded w-full" rows="3" placeholder="Ej: Se corrigió porque se marcó tarde por error"></textarea>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="button" onclick="cerrarModalEditarAsistenciaPracticante()" class="bg-gray-500 text-white px-4 py-2 rounded">
+        Cancelar
+      </button>
+
+      <button type="button" onclick="guardarEdicionAsistenciaPracticante()" class="bg-teal-600 text-white px-4 py-2 rounded">
+        Guardar
+      </button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 
 <script>
 
@@ -752,13 +793,34 @@ function renderTabla() {
 function cargarPracticantes() {
 
   let fecha = document.getElementById('fechaPracticantes').value;
+  let carrera = document.getElementById('filtroCarreraPracticantes')?.value || '';
 
   if (!fecha) {
     fecha = new Date().toISOString().slice(0, 10);
   }
 
-  fetch(`../process/get_practicantes.php?fecha=${fecha}`)
-    .then(res => res.json())
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  localStorage.setItem('fechaPracticantesSeleccionada', fecha);
+  localStorage.setItem('fechaPracticantesGuardadaEn', hoy);
+
+  let url = `../process/get_practicantes_por_dia.php?fecha=${encodeURIComponent(fecha)}`;
+
+  if (carrera !== '') {
+    url += `&id_carrera=${encodeURIComponent(carrera)}`;
+  }
+
+  fetch(url)
+    .then(async res => {
+      const texto = await res.text();
+
+      try {
+        return JSON.parse(texto);
+      } catch (e) {
+        console.error("Respuesta no JSON:", texto);
+        throw new Error("El servidor no devolvió JSON válido");
+      }
+    })
     .then(data => {
       if (!data.success) {
         alert(data.error || 'Error al cargar practicantes');
@@ -766,7 +828,17 @@ function cargarPracticantes() {
       }
 
       practicantesData = data.practicantes;
+
+      const info = document.getElementById('infoPracticantes');
+      if (info) {
+        info.innerText = `Mostrando practicantes con horario para ${data.dia_semana} (${data.total})`;
+      }
+
       renderTablaPracticantes();
+    })
+    .catch(error => {
+      console.error("Error cargarPracticantes:", error);
+      alert("Error al cargar practicantes: " + error.message);
     });
 }
 
@@ -814,51 +886,9 @@ function renderTablaPracticantes() {
 
 }
 
-function crearFilaPracticante(practicante, index) {
-
-    let estado = practicante.estado ?? "Pendiente";
-
-    let color = "gray";
-
-    if (estado === "Asistió")
-        color = "green";
-
-    if (estado === "Ausente")
-        color = "red";
-
-    return `
-        <tr>
-            <td>${index + 1}</td>
-            <td>${practicante.nombre}</td>
-            <td>${practicante.dni}</td>
-            <td>${practicante.telefono ?? ''}</td>
-            <td>${practicante.carrera ?? '-'}</td>
-            <td>${practicante.horario ?? '-'}</td>
-            <td class="center">
-                <button 
-                    class="bg-green-500 text-white px-2 py-1 rounded"
-                    onclick="marcarAsistencia(${practicante.id_asistencia}, 'Asistió', 'practicante')">
-                    Asistió
-                </button>
-                <button 
-                    class="bg-red-500 text-white px-2 py-1 rounded"
-                    onclick="marcarAsistencia(${practicante.id_asistencia}, 'Ausente', 'practicante')">
-                    Ausente
-                </button>
-            </td>
-            <td class="center">
-                <span 
-                    id="estado-practicante-${practicante.id_asistencia}"
-                    class="px-2 py-1 rounded text-white bg-${color}-500">
-                    ${estado}
-                </span>
-            </td>
-            <td class="center">
-                ${practicante.hora_salida ?? '--'}
-            </td>
-        </tr>
-    `;
-}
+// =========================
+// ACTUALIZAR ESTADÍSTICAS PRACTICANTES
+// =========================
 
 function actualizarEstadisticasPracticantes() {
 
@@ -866,23 +896,329 @@ function actualizarEstadisticasPracticantes() {
 
     let presentes = 0;
     let ausentes = 0;
+    let tardes = 0;
+    let justificados = 0;
 
     estados.forEach(e => {
-        if (e.innerText === "Asistió")
-            presentes++;
+        const estado = e.innerText.trim();
 
-        if (e.innerText === "Ausente")
-            ausentes++;
+        if (estado === "Asistió") presentes++;
+        if (estado === "Ausente") ausentes++;
+        if (estado === "Tarde") tardes++;
+        if (estado === "Justificado") justificados++;
     });
 
     let total = estados.length;
-    let porcentaje = total > 0 ? Math.round((presentes / total) * 100) : 0;
+
+    // Para el porcentaje, Tarde y Justificado también cuentan como asistencia válida
+    let asistenciaValida = presentes + tardes + justificados;
+
+    let porcentaje = total > 0
+        ? Math.round((asistenciaValida / total) * 100)
+        : 0;
 
     document.getElementById("presentesPracticantes").innerText = presentes;
     document.getElementById("ausentesPracticantes").innerText = ausentes;
     document.getElementById("porcentajePracticantes").innerText = porcentaje + "%";
 }
 
+function crearFilaPracticante(practicante, index) {
+
+    let estado = practicante.estado ?? "Pendiente";
+
+    let color = "gray";
+    if (estado === "Asistió") color = "green";
+    if (estado === "Ausente") color = "red";
+    if (estado === "Tarde") color = "yellow";
+    if (estado === "Justificado") color = "blue";
+
+    let horaEntrada = practicante.hora_entrada ?? null;
+    let horaSalida = practicante.hora_salida ?? null;
+
+    let bloqueEntrada = "";
+
+    if (horaEntrada) {
+        if (estado === "Tarde") {
+            bloqueEntrada = `
+                <div class="text-yellow-700 font-semibold mb-1">
+                    Tarde: ${horaEntrada}
+                </div>
+            `;
+        } else {
+            bloqueEntrada = `
+                <div class="text-green-700 font-semibold mb-1">
+                    Entrada: ${horaEntrada}
+                </div>
+            `;
+        }
+    } else if (estado === "Ausente") {
+        bloqueEntrada = `
+            <div class="text-red-600 font-semibold mb-1">
+                Marcado ausente
+            </div>
+        `;
+    } else if (estado === "Justificado") {
+        bloqueEntrada = `
+            <div class="text-blue-600 font-semibold mb-1">
+                Justificado
+            </div>
+        `;
+    } else {
+        bloqueEntrada = `
+            <button 
+                class="bg-green-500 text-white px-3 py-1 rounded mb-1"
+                onclick="marcarAsistencia(${practicante.id_asistencia}, 'Asistió', 'practicante')">
+                Entrada
+            </button>
+        `;
+    }
+
+    let bloqueSalida = "";
+
+    if (horaSalida) {
+        bloqueSalida = `
+            <span class="text-gray-700 font-semibold">
+                ${horaSalida}
+            </span>
+        `;
+    } else if (estado === "Asistió" || estado === "Tarde") {
+        bloqueSalida = `
+            <button 
+                class="bg-gray-500 text-white px-3 py-1 rounded"
+                onclick="registrarSalidaPracticante(${practicante.id_asistencia})">
+                Salida
+            </button>
+        `;
+    } else {
+        bloqueSalida = "--";
+    }
+
+    return `
+        <tr>
+            <td>${index + 1}</td>
+
+            <td>
+                <strong>${practicante.nombre}</strong>
+            </td>
+
+            <td>${practicante.dni ?? '-'}</td>
+            <td>${practicante.telefono ?? '-'}</td>
+            <td>${practicante.carrera ?? '-'}</td>
+
+            <td>
+                <strong>${practicante.horario_hoy ?? '-'}</strong>
+                <br>
+                <small class="text-gray-500">${practicante.modalidad_horario ?? ''}</small>
+            </td>
+
+            <td class="center">
+                ${bloqueEntrada}
+
+                <select 
+                    class="border px-2 py-1 rounded bg-gray-700 text-white mt-1"
+                    onchange="ejecutarOpcionPracticante(this, ${practicante.id_asistencia})">
+                    <option value="">Más opciones</option>
+                    <option value="Asistió">Marcar entrada</option>
+                    <option value="Tarde">Marcar tarde</option>
+                    <option value="Ausente">Marcar ausente</option>
+                    <option value="Justificado">Justificar</option>
+                    <option value="Editar">Editar asistencia</option>
+                </select>
+            </td>
+
+            <td class="center">
+                <span 
+                    id="estado-practicante-${practicante.id_asistencia}"
+                    class="px-2 py-1 rounded text-white bg-${color}-500">
+                    ${estado}
+                </span>
+            </td>
+
+            <td class="center">
+                ${bloqueSalida}
+            </td>
+        </tr>
+    `;
+}
+
+
+// =========================
+// EJECUTAR OPCIÓN PRACTICANTE
+// =========================
+
+function ejecutarOpcionPracticante(select, id_asistencia) {
+
+    const accion = select.value;
+
+    if (!accion) {
+        return;
+    }
+
+    const practicante = practicantesData.find(p => String(p.id_asistencia) === String(id_asistencia));
+
+    if (accion === "Editar") {
+
+        if (!practicante) {
+            alert("No se encontró la información del practicante.");
+            select.value = "";
+            return;
+        }
+
+        abrirModalEditarAsistenciaPracticante(
+            practicante.id_asistencia,
+            practicante.estado,
+            practicante.hora_entrada,
+            practicante.hora_salida,
+            practicante.observacion ?? ''
+        );
+
+        select.value = "";
+        return;
+    }
+
+    marcarAsistencia(id_asistencia, accion, 'practicante');
+
+    select.value = "";
+}
+
+function convertirHoraParaInput(hora) {
+
+    if (!hora) return '';
+
+    hora = String(hora).trim();
+
+    if (/^\d{2}:\d{2}:\d{2}$/.test(hora)) {
+        return hora.substring(0, 5);
+    }
+
+    if (/^\d{2}:\d{2}$/.test(hora)) {
+        return hora;
+    }
+
+    const match = hora.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+    if (match) {
+        let h = parseInt(match[1], 10);
+        const m = match[2];
+        const ampm = match[3].toUpperCase();
+
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+
+        return String(h).padStart(2, '0') + ':' + m;
+    }
+
+    return '';
+}
+
+function convertirHoraParaInput(hora) {
+
+    if (!hora) return '';
+
+    hora = String(hora).trim();
+
+    if (/^\d{2}:\d{2}:\d{2}$/.test(hora)) {
+        return hora.substring(0, 5);
+    }
+
+    if (/^\d{2}:\d{2}$/.test(hora)) {
+        return hora;
+    }
+
+    const match = hora.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+    if (match) {
+        let h = parseInt(match[1], 10);
+        const m = match[2];
+        const ampm = match[3].toUpperCase();
+
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+
+        return String(h).padStart(2, '0') + ':' + m;
+    }
+
+    return '';
+}
+
+function abrirModalEditarAsistenciaPracticante(id_asistencia, estado, horaEntrada = '', horaSalida = '', observacion = '') {
+
+    document.getElementById('editIdAsistenciaPracticante').value = id_asistencia;
+    document.getElementById('editEstadoPracticante').value = estado || 'Pendiente';
+
+    document.getElementById('editHoraEntradaPracticante').value = convertirHoraParaInput(horaEntrada);
+    document.getElementById('editHoraSalidaPracticante').value = convertirHoraParaInput(horaSalida);
+    document.getElementById('editObservacionPracticante').value = observacion || '';
+
+    document.getElementById('modalEditarAsistenciaPracticante').classList.remove('hidden');
+}
+
+function cerrarModalEditarAsistenciaPracticante() {
+    document.getElementById('modalEditarAsistenciaPracticante').classList.add('hidden');
+}
+
+function abrirModalEditarAsistenciaPracticante(id_asistencia, estado, horaEntrada = '', horaSalida = '', observacion = '') {
+
+    document.getElementById('editIdAsistenciaPracticante').value = id_asistencia;
+    document.getElementById('editEstadoPracticante').value = estado || 'Pendiente';
+
+    document.getElementById('editHoraEntradaPracticante').value = horaEntrada ? horaEntrada.substring(0, 5) : '';
+    document.getElementById('editHoraSalidaPracticante').value = horaSalida ? horaSalida.substring(0, 5) : '';
+    document.getElementById('editObservacionPracticante').value = observacion || '';
+
+    document.getElementById('modalEditarAsistenciaPracticante').classList.remove('hidden');
+}
+
+function cerrarModalEditarAsistenciaPracticante() {
+    document.getElementById('modalEditarAsistenciaPracticante').classList.add('hidden');
+}
+
+function guardarEdicionAsistenciaPracticante() {
+
+    const id_asistencia = document.getElementById('editIdAsistenciaPracticante').value;
+    const estado = document.getElementById('editEstadoPracticante').value;
+    const hora_entrada = document.getElementById('editHoraEntradaPracticante').value;
+    const hora_salida = document.getElementById('editHoraSalidaPracticante').value;
+    const observacion = document.getElementById('editObservacionPracticante').value.trim();
+
+    if (!id_asistencia) {
+        alert('No se encontró la asistencia.');
+        return;
+    }
+
+    if ((estado === 'Justificado' || observacion !== '') && observacion.length < 3) {
+        alert('Ingresa una observación válida.');
+        return;
+    }
+
+    const body =
+        "id_asistencia=" + encodeURIComponent(id_asistencia) +
+        "&estado=" + encodeURIComponent(estado) +
+        "&hora_entrada=" + encodeURIComponent(hora_entrada) +
+        "&hora_salida=" + encodeURIComponent(hora_salida) +
+        "&observacion=" + encodeURIComponent(observacion);
+
+    fetch("../process/editar_asistencia_practicante.php", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: body
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            cerrarModalEditarAsistenciaPracticante();
+            cargarPracticantes();
+        } else {
+            alert(data.message || 'Error al editar asistencia');
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        alert('Error de conexión al editar asistencia');
+    });
+}
 
 // =========================
 // marcar asistencia
@@ -1004,51 +1340,65 @@ function marcarAsistencia(id_asistencia, estado, tipo = 'alumno') {
     console.log("Estado:", estado);
     console.log("Tipo:", tipo);
 
+    if (!id_asistencia) {
+        alert("No se encontró el ID de asistencia.");
+        return;
+    }
+
     let body =
-        "id_asistencia=" + id_asistencia +
-        "&estado=" + estado;
+        "id_asistencia=" + encodeURIComponent(id_asistencia) +
+        "&estado=" + encodeURIComponent(estado);
 
     if (tipo === 'practicante') {
         body += "&tipo=practicante";
     }
 
     fetch("../process/actualizar_estado.php", {
-
         method: "POST",
-
         headers: {
             "Content-Type": "application/x-www-form-urlencoded"
         },
-
         body: body
-
     })
     .then(res => res.json())
-
     .then(data => {
 
         if (data.success) {
 
             let badge = document.getElementById(
                 tipo === 'practicante'
-                ? "estado-practicante-" + id_asistencia
-                : "estado-" + id_asistencia
+                    ? "estado-practicante-" + id_asistencia
+                    : "estado-" + id_asistencia
             );
+
+            if (!badge) {
+                console.warn("No se encontró el badge del estado.");
+                return;
+            }
 
             badge.innerText = estado;
 
+            // Color por defecto
+            badge.className = "px-2 py-1 rounded text-white bg-gray-500";
+
             if (estado === "Asistió") {
-
-                badge.className =
-                    "px-2 py-1 rounded text-white bg-green-500";
-
+                badge.className = "px-2 py-1 rounded text-white bg-green-500";
             }
 
             if (estado === "Ausente") {
+                badge.className = "px-2 py-1 rounded text-white bg-red-500";
+            }
 
-                badge.className =
-                    "px-2 py-1 rounded text-white bg-red-500";
+            if (estado === "Tarde") {
+                badge.className = "px-2 py-1 rounded text-white bg-yellow-500";
+            }
 
+            if (estado === "Justificado") {
+                badge.className = "px-2 py-1 rounded text-white bg-blue-500";
+            }
+
+            if (estado === "Pendiente") {
+                badge.className = "px-2 py-1 rounded text-white bg-gray-500";
             }
 
             if (tipo === 'practicante') {
@@ -1058,16 +1408,55 @@ function marcarAsistencia(id_asistencia, estado, tipo = 'alumno') {
             }
 
         } else {
-
-            alert("Error al actualizar");
-
+            alert(data.message || "Error al actualizar");
         }
 
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Error de conexión al actualizar asistencia");
     });
 
 }
 
+// =========================
+// REGISTRAR SALIDA PRACTICANTE
+// =========================
 
+function registrarSalidaPracticante(id_asistencia) {
+
+    console.log("Registrar salida practicante ID:", id_asistencia);
+
+    if (!id_asistencia) {
+        alert("No se encontró el ID de asistencia.");
+        return;
+    }
+
+    let body = "id_asistencia=" + encodeURIComponent(id_asistencia);
+
+    fetch("../process/registrar_salida.php", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: body
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.success) {
+            cargarPracticantes();
+        } else {
+            alert(data.message || "Error al registrar salida");
+        }
+
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("Error de conexión al registrar salida");
+    });
+
+}
 
 // =========================
 // VALIDAR HORARIO SELECCIONADO
@@ -1698,26 +2087,50 @@ document.addEventListener('DOMContentLoaded', () => {
   cargarResumenSemana();
   cargarGraficaMensual();
   cargarResumenMensual();
-  cargarPracticantes();
 
   // =========================
   // EVENTOS
   // =========================
 
-  // 🔥 Fecha (horarios dinámicos)
+  // Fecha alumnos / horarios dinámicos
   const fechaInput = document.getElementById('fecha');
   if (fechaInput) {
     fechaInput.addEventListener('change', cargarHorariosHoy);
   }
 
+  // Fecha practicantes: recordar solo durante el día actual
   const fechaPracticantes = document.getElementById('fechaPracticantes');
+
   if (fechaPracticantes) {
-    fechaPracticantes.addEventListener('change', cargarPracticantes);
+
+    const hoySistema = new Date().toISOString().slice(0, 10);
+
+    const fechaGuardada = localStorage.getItem('fechaPracticantesSeleccionada');
+    const diaGuardado = localStorage.getItem('fechaPracticantesGuardadaEn');
+
+    if (fechaGuardada && diaGuardado === hoySistema) {
+      fechaPracticantes.value = fechaGuardada;
+    } else {
+      localStorage.removeItem('fechaPracticantesSeleccionada');
+      localStorage.removeItem('fechaPracticantesGuardadaEn');
+    }
+
+    fechaPracticantes.addEventListener('change', function() {
+      const hoy = new Date().toISOString().slice(0, 10);
+
+      localStorage.setItem('fechaPracticantesSeleccionada', this.value);
+      localStorage.setItem('fechaPracticantesGuardadaEn', hoy);
+
+      cargarPracticantes();
+    });
   }
+
+  // Ahora sí carga practicantes usando la fecha restaurada o la fecha actual
+  cargarPracticantes();
 
   const filtroCarreraPracticantes = document.getElementById('filtroCarreraPracticantes');
   if (filtroCarreraPracticantes) {
-    filtroCarreraPracticantes.addEventListener('change', renderTablaPracticantes);
+    filtroCarreraPracticantes.addEventListener('change', cargarPracticantes);
   }
 
   const filtroNombrePracticantes = document.getElementById('filtroNombrePracticantes');
@@ -1735,6 +2148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnTogglePracticanteFiltro.addEventListener('click', function() {
       const panel = document.getElementById('panelFiltrosPracticantes');
       if (!panel) return;
+
       panel.classList.toggle('hidden');
       this.innerText = panel.classList.contains('hidden') ? 'Mostrar filtro' : 'Ocultar filtro';
     });
