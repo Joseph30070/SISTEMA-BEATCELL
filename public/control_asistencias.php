@@ -216,9 +216,25 @@ ob_start();
     <div class="card stat">Porcentaje<div id="porcentaje">0%</div></div>
   </div>
 
-  <!-- TABLA -->
   <div class="card">
-    <h3 class="font-semibold mb-4">Alumnos del Grupo</h3>
+
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold">Alumnos del Grupo</h3>
+
+        <div class="flex gap-2">
+            <button type="button" onclick="exportarAsistenciaAlumnosPDF()" class="bg-red-600 text-white px-3 py-2 rounded">
+    PDF
+</button>
+
+<button type="button" onclick="exportarAsistenciaAlumnosExcel()" class="bg-green-600 text-white px-3 py-2 rounded">
+    EXCEL
+</button>
+
+<button type="button" onclick="exportarAsistenciaAlumnosXML()" class="bg-blue-600 text-white px-3 py-2 rounded">
+    XML
+</button>
+        </div>
+    </div>
 
     <table class="shadow-sm">
 
@@ -260,8 +276,9 @@ ob_start();
     <div class="grid">
       <div>
         <label>Fecha</label>
-        <input type="date" id="fechaPracticantes" class="border px-3 py-2 rounded w-full" value="<?= date('Y-m-d') ?>">      </div>
-
+        
+        <input type="date" id="fechaPracticantes" class="border px-3 py-2 rounded w-full" value="<?= date('Y-m-d') ?>">
+      </div>
       <div>
         <label>Carrera</label>
         <select id="filtroCarreraPracticantes" class="border px-3 py-2 rounded w-full">
@@ -298,7 +315,33 @@ ob_start();
   </div>
 
   <div class="card">
-    <h3 class="font-semibold mb-4">Practicantes</h3>
+
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-semibold">Practicantes</h3>
+
+    <div class="flex gap-2">
+      <button 
+        type="button"
+        onclick="exportarPracticantesPDF()"
+        class="bg-red-600 text-white px-3 py-2 rounded">
+        PDF
+      </button>
+
+      <button 
+        type="button"
+        onclick="exportarPracticantesExcel()"
+        class="bg-green-600 text-white px-3 py-2 rounded">
+        EXCEL
+      </button>
+
+      <button 
+        type="button"
+        onclick="exportarPracticantesXML()"
+        class="bg-blue-600 text-white px-3 py-2 rounded">
+        XML
+      </button>
+    </div>
+  </div>
 
     <div style="overflow-x:auto;">
       <table class="shadow-sm" style="min-width:1100px;">
@@ -580,6 +623,62 @@ ob_start();
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+
+/* ================================
+   EXPORTAR ASISTENCIA DE ALUMNOS
+   POR FECHA / CURSO / GRUPO
+================================ */
+
+function obtenerParametrosExportacionAlumnos() {
+    const fecha = document.getElementById('fecha')?.value;
+    const curso = document.getElementById('curso')?.value;
+    const grupo = document.getElementById('grupo')?.value;
+
+    if (!fecha) {
+        alert("Seleccione una fecha.");
+        return null;
+    }
+
+    if (!curso) {
+        alert("Seleccione un curso.");
+        return null;
+    }
+
+    if (!grupo) {
+        alert("Seleccione un grupo.");
+        return null;
+    }
+
+    return new URLSearchParams({
+        fecha: fecha,
+        id_curso: curso,
+        id_grupo: grupo
+    }).toString();
+}
+
+function exportarAsistenciaAlumnosPDF() {
+    const params = obtenerParametrosExportacionAlumnos();
+
+    if (!params) return;
+
+    window.open("exportar_asistencia_alumnos_pdf.php?" + params, "_blank");
+}
+
+function exportarAsistenciaAlumnosExcel() {
+    const params = obtenerParametrosExportacionAlumnos();
+
+    if (!params) return;
+
+    window.location.href = "exportar_asistencia_alumnos_excel.php?" + params;
+}
+
+function exportarAsistenciaAlumnosXML() {
+    const params = obtenerParametrosExportacionAlumnos();
+
+    if (!params) return;
+
+    window.location.href = "exportar_asistencia_alumnos_xml.php?" + params;
+}
 
 // =========================
 // TABS
@@ -1218,6 +1317,245 @@ function guardarEdicionAsistenciaPracticante() {
         console.error(error);
         alert('Error de conexión al editar asistencia');
     });
+}
+
+function obtenerPracticantesFiltrados() {
+
+    let filtroCarrera = document.getElementById('filtroCarreraPracticantes')?.value;
+    let filtroNombre = document.getElementById('filtroNombrePracticantes')?.value.trim().toLowerCase();
+    let filtroDni = document.getElementById('filtroDniPracticantes')?.value.trim().toLowerCase();
+
+    return practicantesData.filter(practicante => {
+        if (filtroCarrera && String(practicante.id_carrera) !== filtroCarrera) {
+            return false;
+        }
+
+        if (filtroNombre && !String(practicante.nombre).toLowerCase().includes(filtroNombre)) {
+            return false;
+        }
+
+        if (filtroDni && !String(practicante.dni).toLowerCase().includes(filtroDni)) {
+            return false;
+        }
+
+        return true;
+    });
+}
+
+function exportarPracticantesPDF() {
+
+    const fecha = document.getElementById('fechaPracticantes')?.value || '';
+    const info = document.getElementById('infoPracticantes')?.innerText || '';
+
+    let filas = '';
+
+    obtenerPracticantesFiltrados().forEach((p, index) => {
+        filas += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${p.nombre ?? '-'}</td>
+                <td>${p.dni ?? '-'}</td>
+                <td>${p.telefono ?? '-'}</td>
+                <td>${p.carrera ?? '-'}</td>
+                <td>${p.horario_hoy ?? '-'}</td>
+                <td>${p.hora_entrada ?? '-'}</td>
+                <td>${p.hora_salida ?? '-'}</td>
+                <td>${p.estado ?? 'Pendiente'}</td>
+                <td>${p.observacion ?? '-'}</td>
+            </tr>
+        `;
+    });
+
+    const ventana = window.open('', '_blank');
+
+    ventana.document.write(`
+        <html>
+        <head>
+            <title>Reporte de Asistencia de Practicantes</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 20px;
+                    color: #111827;
+                }
+
+                h2 {
+                    color: #0f766e;
+                    margin-bottom: 5px;
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                    font-size: 12px;
+                }
+
+                th {
+                    background: #0f766e;
+                    color: white;
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    text-align: left;
+                }
+
+                td {
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                }
+
+                p {
+                    font-size: 13px;
+                }
+            </style>
+        </head>
+        <body>
+            <h2>SISTEMA BEATCELL</h2>
+            <h3>Reporte de Asistencia de Practicantes</h3>
+
+            <p><strong>Fecha:</strong> ${fecha}</p>
+            <p><strong>Detalle:</strong> ${info}</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Practicante</th>
+                        <th>DNI</th>
+                        <th>Teléfono</th>
+                        <th>Carrera</th>
+                        <th>Horario de hoy</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>Estado</th>
+                        <th>Observación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filas}
+                </tbody>
+            </table>
+
+            <script>
+                window.print();
+            <\/script>
+        </body>
+        </html>
+    `);
+
+    ventana.document.close();
+}
+
+function exportarPracticantesExcel() {
+
+    const fecha = document.getElementById('fechaPracticantes')?.value || 'sin_fecha';
+
+    let tabla = `
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Practicante</th>
+                    <th>DNI</th>
+                    <th>Teléfono</th>
+                    <th>Carrera</th>
+                    <th>Horario de hoy</th>
+                    <th>Entrada</th>
+                    <th>Salida</th>
+                    <th>Estado</th>
+                    <th>Observación</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    obtenerPracticantesFiltrados().forEach((p, index) => {
+        tabla += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${p.nombre ?? '-'}</td>
+                <td>${p.dni ?? '-'}</td>
+                <td>${p.telefono ?? '-'}</td>
+                <td>${p.carrera ?? '-'}</td>
+                <td>${p.horario_hoy ?? '-'}</td>
+                <td>${p.hora_entrada ?? '-'}</td>
+                <td>${p.hora_salida ?? '-'}</td>
+                <td>${p.estado ?? 'Pendiente'}</td>
+                <td>${p.observacion ?? '-'}</td>
+            </tr>
+        `;
+    });
+
+    tabla += `
+            </tbody>
+        </table>
+    `;
+
+    const blob = new Blob([tabla], {
+        type: 'application/vnd.ms-excel;charset=utf-8;'
+    });
+
+    descargarArchivo(blob, `asistencia_practicantes_${fecha}.xls`);
+}
+
+function limpiarXML(valor) {
+    return String(valor ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+function exportarPracticantesXML() {
+
+    const fecha = document.getElementById('fechaPracticantes')?.value || 'sin_fecha';
+
+    let xml = '<' + '?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<reporte_asistencia_practicantes>\n';
+    xml += '  <fecha>' + limpiarXML(fecha) + '</fecha>\n';
+    xml += '  <total>' + obtenerPracticantesFiltrados().length + '</total>\n';
+      xml += '  <practicantes>\n';
+
+      obtenerPracticantesFiltrados().forEach((p, index) => {        xml += '    <practicante>\n';
+        xml += '      <numero>' + (index + 1) + '</numero>\n';
+        xml += '      <id_practicante>' + limpiarXML(p.id_practicante) + '</id_practicante>\n';
+        xml += '      <nombre>' + limpiarXML(p.nombre) + '</nombre>\n';
+        xml += '      <dni>' + limpiarXML(p.dni) + '</dni>\n';
+        xml += '      <telefono>' + limpiarXML(p.telefono) + '</telefono>\n';
+        xml += '      <carrera>' + limpiarXML(p.carrera) + '</carrera>\n';
+        xml += '      <horario_hoy>' + limpiarXML(p.horario_hoy) + '</horario_hoy>\n';
+        xml += '      <modalidad>' + limpiarXML(p.modalidad_horario) + '</modalidad>\n';
+        xml += '      <hora_entrada>' + limpiarXML(p.hora_entrada) + '</hora_entrada>\n';
+        xml += '      <hora_salida>' + limpiarXML(p.hora_salida) + '</hora_salida>\n';
+        xml += '      <estado>' + limpiarXML(p.estado ?? 'Pendiente') + '</estado>\n';
+        xml += '      <observacion>' + limpiarXML(p.observacion) + '</observacion>\n';
+        xml += '    </practicante>\n';
+    });
+
+    xml += '  </practicantes>\n';
+    xml += '</reporte_asistencia_practicantes>';
+
+    const blob = new Blob([xml], {
+        type: 'application/xml;charset=utf-8;'
+    });
+
+    descargarArchivo(blob, `asistencia_practicantes_${fecha}.xml`);
+}
+
+function descargarArchivo(blob, nombreArchivo) {
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
 }
 
 // =========================
